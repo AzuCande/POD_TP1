@@ -5,6 +5,8 @@ public class Flight {
     private FlightState state = FlightState.PENDING;
     private final Plane plane;
     private final String destination;
+//    private final FlightState state = FlightState.PENDING; //TODO: esto creo que va acá
+
 
     public Flight(String code, Plane plane, String destination) {
         this.code = code;

@@ -3,7 +3,7 @@ package ar.edu.itba.pod.server.model;
 public class Plane {
     private final String model;
     private final Row[] rows;
-    private final FlightState state = FlightState.PENDING;
+    private final FlightState state = FlightState.PENDING; //TODO: esto creo que no va. es el modelo de un avión no un vuelo. eso es en flights
 
     public Plane(String model, int businessRows, int businessCols, int premEconomyRows, int premEconomyCols, int economyRows, int economyCols) {
         int totRows = businessRows + premEconomyRows + economyRows;
@@ -86,5 +86,6 @@ public class Plane {
     private boolean validParams(int businessRows, int businessCols, int premEconomyRows, int premEconomyCols, int economyRows, int economyCols) {
         return (businessRows + premEconomyRows + economyRows > 0) && (businessRows > 0 && businessCols > 0 || premEconomyRows > 0 && premEconomyCols > 0 || economyRows > 0 && economyCols > 0);
     }
+
 
 }
