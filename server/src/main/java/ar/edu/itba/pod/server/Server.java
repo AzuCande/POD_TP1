@@ -9,13 +9,12 @@ import java.io.FileNotFoundException;
 
 
 public class Server {
-    private static Logger logger = LoggerFactory.getLogger(Server.class);
+    private static final Logger logger = LoggerFactory.getLogger(Server.class);
 
     public static void main(String[] args) throws FileNotFoundException {
         logger.info("rmi-project Server Starting ...");
 
         FlightManager flightManager = new FlightManager();
-        flightManager.addPlaneModel();
 
     }
 }

@@ -1,29 +1,34 @@
 package ar.edu.itba.pod.server.model;
 
 public class Plane {
-    private final String model;
+    private final PlaneModel model;
     private final Row[] rows;
-    private final FlightState state = FlightState.PENDING; //TODO: esto creo que no va. es el modelo de un avión no un vuelo. eso es en flights
+    private final FlightState state = FlightState.PENDING;
 
-    public Plane(String model, int businessRows, int businessCols, int premEconomyRows, int premEconomyCols, int economyRows, int economyCols) {
-        int totRows = businessRows + premEconomyRows + economyRows;
-        if (validParams(businessRows, businessCols, premEconomyRows, premEconomyCols, economyRows, economyCols)) {
+    public Plane(PlaneModel model) {
+        this.model = model;
+
+        int[] business = model.getCategoryConfig(RowCategory.BUSINESS);
+        int[] premium = model.getCategoryConfig(RowCategory.PREMIUM_ECONOMY);
+        int[] economy = model.getCategoryConfig(RowCategory.ECONOMY);
+
+        int totRows = business[0] + premium[0] + economy[0];
+        if (validParams(business[0], business[1], premium[0], premium[1], economy[0], economy[1])) {
             throw new IllegalArgumentException(""); //TODO: crear nuestras excepciones
         }
 
-        this.model = model;
         this.rows = new Row[totRows];
         int iter = 0;
-        for (int i = 0; i < businessRows; iter++, i++) {
-            rows[iter] = new Row(RowCategory.BUSINESS, businessCols);
+        for (int i = 0; i < business[0]; iter++, i++) {
+            rows[iter] = new Row(RowCategory.BUSINESS, business[1]);
         }
 
-        for (int i = 0; i < premEconomyRows; iter++, i++) {
-            rows[iter] = new Row(RowCategory.PREMIUM_ECONOMY, premEconomyCols);
+        for (int i = 0; i < premium[0]; iter++, i++) {
+            rows[iter] = new Row(RowCategory.PREMIUM_ECONOMY, premium[1]);
         }
 
-        for (int i = 0; i < businessRows; iter++, i++) {
-            rows[iter] = new Row(RowCategory.ECONOMY, economyCols);
+        for (int i = 0; i < economy[0]; iter++, i++) {
+            rows[iter] = new Row(RowCategory.ECONOMY, economy[1]);
         }
 
     }
@@ -75,10 +80,9 @@ public class Plane {
         if (row < 0 || row >= rows.length) {
             throw new IllegalArgumentException("Row " + row + " does not exist");
         }
-
     }
 
-    public String getModel() {
+    public PlaneModel getModel() {
         return model;
     }
 
