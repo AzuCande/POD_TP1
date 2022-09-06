@@ -1,4 +1,4 @@
-package ar.edu.itba.pod.server.model;
+package ar.edu.itba.pod.model;
 
 public class Row {
     private final RowCategory rowCategory;

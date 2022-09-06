@@ -1,4 +1,4 @@
-package ar.edu.itba.pod.server.model;
+package ar.edu.itba.pod.model;
 
 import java.util.Map;
 import java.util.Objects;

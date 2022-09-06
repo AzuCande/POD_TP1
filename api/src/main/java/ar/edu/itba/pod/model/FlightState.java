@@ -1,4 +1,4 @@
-package ar.edu.itba.pod.client.models;
+package ar.edu.itba.pod.model;
 
 public enum FlightState {
     PENDING, CANCELED, CONFIRMED

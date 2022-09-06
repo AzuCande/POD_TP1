@@ -1,9 +1,9 @@
-package ar.edu.itba.pod.server.model;
+package ar.edu.itba.pod.model;
 
 public class Plane {
     private final PlaneModel model;
     private final Row[] rows;
-    private final FlightState state = FlightState.PENDING;
+    private final FlightState state = FlightState.PENDING; // TODO: deprecated
 
     public Plane(PlaneModel model) {
         this.model = model;

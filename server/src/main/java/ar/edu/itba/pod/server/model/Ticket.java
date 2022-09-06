@@ -1,5 +1,7 @@
 package ar.edu.itba.pod.server.model;
 
+import ar.edu.itba.pod.model.RowCategory;
+
 public class Ticket {
     private final String id;
     private final RowCategory category;
