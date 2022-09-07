@@ -2,14 +2,21 @@ package ar.edu.itba.pod.server.service;
 
 import ar.edu.itba.pod.interfaces.SeatManagerService;
 import ar.edu.itba.pod.models.Flight;
+import ar.edu.itba.pod.models.RowCategory;
 import ar.edu.itba.pod.server.ServerStore;
 
 import java.rmi.RemoteException;
+import java.util.ArrayList;
 import java.util.NoSuchElementException;
+import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class SeatManagerServiceImpl implements SeatManagerService {
 
     private final ServerStore store;
+
+    private Lock seatLock = new ReentrantLock();
 
     public SeatManagerServiceImpl(ServerStore store) {
         this.store = store;
@@ -19,8 +26,10 @@ public class SeatManagerServiceImpl implements SeatManagerService {
     public boolean isAvailable(String flightCode, int row, char seat) throws RemoteException {
 
         validateFlightCode(flightCode);
-
-        return store.getFlights().get(flightCode).getPlane().checkSeat(row, seat);
+        seatLock.lock();
+        boolean isAvailable = store.getFlights().get(flightCode).getPlane().checkSeat(row, seat);
+        seatLock.unlock();
+        return isAvailable;
     }
 
     @Override
@@ -29,7 +38,17 @@ public class SeatManagerServiceImpl implements SeatManagerService {
         validateFlightCode(flightCode);
         Flight flight = store.getFlights().get(flightCode);
 
-        flight.getPlane().assignSeat(row, seat, passenger);
+        //Empezamos haciendo que un ticket puede ser asignado solamente a su categoría y no a una inferior, TODO : implementar que se pueda asignar a una inferior
+        RowCategory category = flight.getPlane().getRows()[row].getRowCategory();
+        Set<String> permittedPassengers = flight.getTicketMap().get(category);
+
+        //TODO: chequear
+        if (permittedPassengers.contains(passenger))
+            flight.getPlane().assignSeat(row, seat, passenger);
+        else {
+            throw new RuntimeException();
+        }
+
     }
 
     @Override
@@ -52,8 +71,13 @@ public class SeatManagerServiceImpl implements SeatManagerService {
     }
 
     private void validateFlightCode(String flightCode) {
+
+        store.getFlightsLock().lock();
         if (!store.getFlights().containsKey(flightCode)) {
+            store.getFlightsLock().unlock();
             throw new NoSuchElementException("Flight does not exists");
         }
+        store.getFlightsLock().unlock();
+
     }
 }

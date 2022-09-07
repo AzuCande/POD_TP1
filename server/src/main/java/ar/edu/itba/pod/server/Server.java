@@ -23,7 +23,7 @@ public class Server {
 
         ServerStore store = new ServerStore();
 
-        final FlightManagerService flightManagerService = new FlightManagerServiceImpl();
+        final FlightManagerService flightManagerService = new FlightManagerServiceImpl(store);
 
         final SeatManagerService seatManagerService = new SeatManagerServiceImpl(store);
 

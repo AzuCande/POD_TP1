@@ -7,13 +7,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class ServerStore {
 //    private final Set<PlaneModel> planeModels = ConcurrentHashMap.newKeySet(); // TODO chequear que garantiza exactamente. Ver si dejamos la interfaz Set
 
     private final Map<String, PlaneModel> planeModels = new HashMap<>();
     private final Map<String, Flight> flights = new HashMap<>();
-    private final Set<String> airports = ConcurrentHashMap.newKeySet(); //TODO : deprecated?
+
+    final Lock flightsLock = new ReentrantLock();
 
 
     public Map<String, PlaneModel> getPlaneModels() {
@@ -24,7 +27,7 @@ public class ServerStore {
         return flights;
     }
 
-    public Set<String> getAirports() {
-        return airports;
+    public Lock getFlightsLock() {
+        return flightsLock;
     }
 }

@@ -8,6 +8,7 @@ import ar.edu.itba.pod.models.RowCategory;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
@@ -24,13 +25,11 @@ public interface FlightManagerService extends Remote {
 
     void changeCancelledFlights() throws RemoteException;
 
-    void listAlternativeFlights() throws RemoteException;
+    Collection<PlaneModel> getPlaneModels() throws RemoteException;
 
-    Set<PlaneModel> getPlaneModels() throws RemoteException;
+    Collection<Flight> getFlights() throws RemoteException;
 
-    Set<Flight> getFlights() throws RemoteException;
+    boolean hasPlaneModel(String PlaneModel) throws RemoteException;
 
-    boolean isPlaneModelAvailable(String PlaneModel) throws RemoteException;
-
-    boolean isFlightCodeAvailable(String flightCode) throws RemoteException;
+    boolean hasFlightCode(String flightCode) throws RemoteException;
 }

@@ -29,6 +29,8 @@ public class Client {
 
         Client.readPlaneModels( "client/src/main/resources/planes.csv", flightManagerService);
 
+        System.out.println(flightManagerService.getPlaneModels().size());
+
     }
 
     public static void readPlaneModels(String fileName, FlightManagerService flightManagerService) {
@@ -80,14 +82,14 @@ public class Client {
                 String flightCode = nextLine[1];
                 String destination = nextLine[2];
                 String[] passengers = nextLine[3].split(",");
-//                if(!flightManager.isPlanemodelAvailable(planeModel)){
-//                    logger.error("Plane model: {} does not exist, line {} ignored", planeModel, lineNumber++);
-//                    continue;
-//                }
-//                if(!flightManager.isFlightCodeAvailable(flightCode)){
-//                    logger.error("Flight code: {} duplicated, line {} ignored", planeModel, lineNumber++);
-//                    continue;
-//                }
+                if(!flightManager.hasPlaneModel(planeModel)){
+                    logger.error("Plane model: {} does not exist, line {} ignored", planeModel, lineNumber++);
+                    continue;
+                }
+                if(flightManager.hasFlightCode(flightCode)){
+                    logger.error("Flight code: {} duplicated, line {} ignored", planeModel, lineNumber++);
+                    continue;
+                }
                 for (String passenger : passengers) {
                     String[] parts = passenger.split("#");
                     RowCategory seatCategory = RowCategory.valueOf(parts[0]);

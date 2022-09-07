@@ -1,9 +1,14 @@
 package ar.edu.itba.pod.models;
 
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 public class Plane {
     private final PlaneModel model;
     private final Row[] rows;
     private final FlightState state = FlightState.PENDING; // TODO: deprecated
+
+    private final Lock seatLock = new ReentrantLock();
 
     public Plane(PlaneModel model) {
         this.model = model;
@@ -35,17 +40,21 @@ public class Plane {
 
     public void assignSeat(int rowNumber, char seat, String passengerName) { //TODO: usar ticket y no passenger
         checkValidRow(rowNumber);
+
         if (state != FlightState.PENDING) {
             throw new IllegalStateException("Plane is not in pending state");
         }
+        //TODO : check if passenger category is permited
 
+        //TODO: revisar
+        this.seatLock.lock();
         for (Row row : rows) {
             if (row.passengerHasSeat(passengerName)) {
                 throw new IllegalStateException("Passenger already has a seat");
             }
         }
-
         rows[rowNumber].assignSeat(seat, passengerName);
+        this.seatLock.unlock();
     }
 
     public void changeSeat(int newRow, char newSeat, String passengerName) {//TODO: usar ticket y no passenger
@@ -73,7 +82,9 @@ public class Plane {
             throw new IllegalStateException("Passenger cannot change seat category");
         }
 
+        //lock
         rows[newRow].assignSeat(newSeat, passengerName);
+        //unlock
     }
 
     public boolean checkSeat(int row, char seat) {
@@ -99,5 +110,7 @@ public class Plane {
         return (businessRows + premEconomyRows + economyRows > 0) && (businessRows > 0 && businessCols > 0 || premEconomyRows > 0 && premEconomyCols > 0 || economyRows > 0 && economyCols > 0);
     }
 
-
+    public Row[] getRows() {
+        return rows;
+    }
 }
