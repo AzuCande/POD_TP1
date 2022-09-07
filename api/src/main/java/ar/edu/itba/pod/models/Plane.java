@@ -1,15 +1,15 @@
 package ar.edu.itba.pod.models;
 
+import java.io.Serializable;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class Plane {
+public class Plane implements Serializable {
     private final PlaneModel model;
     private final Row[] rows;
     private final FlightState state = FlightState.PENDING;
 
     private final Lock seatLock = new ReentrantLock();
-
     private final int[] availableSeats = {0, 0, 0};
 
     public Plane(PlaneModel model) {
@@ -20,7 +20,7 @@ public class Plane {
         int[] economy = model.getCategoryConfig(RowCategory.ECONOMY);
 
         int totRows = business[0] + premium[0] + economy[0];
-        if (validParams(business[0], business[1], premium[0], premium[1], economy[0], economy[1])) {
+        if (!validParams(business, premium, economy)) {
             throw new IllegalArgumentException(""); //TODO: crear nuestras excepciones
         }
 
@@ -38,42 +38,50 @@ public class Plane {
             rows[iter] = new Row(RowCategory.ECONOMY, economy[1]);
         }
 
-        availableSeats[RowCategory.BUSINESS.getValue()] += business[0] * business[1];
-        availableSeats[RowCategory.PREMIUM_ECONOMY.getValue()] += premium[0] * premium[1];
-        availableSeats[RowCategory.ECONOMY.getValue()] += economy[0] * economy[1];
+        availableSeats[RowCategory.BUSINESS.ordinal()] = business[0] * business[1];
+        availableSeats[RowCategory.PREMIUM_ECONOMY.ordinal()] = premium[0] * premium[1];
+        availableSeats[RowCategory.ECONOMY.ordinal()] = economy[0] * economy[1];
     }
 
-    public void assignSeat(int rowNumber, char seat, String passengerName) { //TODO: usar ticket y no passenger
+    public void assignSeat(int rowNumber, char seat, Ticket ticket) { // TODO: concurrencia
         checkValidRow(rowNumber);
 
         if (state != FlightState.PENDING) {
             throw new IllegalStateException("Plane is not in pending state");
         }
-        //TODO : check if passenger category is permited
+
+        if (rows[rowNumber].getRowCategory().ordinal() < ticket.getCategory().ordinal()) {
+            throw new IllegalArgumentException("Passenger category is not permited");
+        }
 
         for (Row row : rows) {
-            if (row.passengerHasSeat(passengerName)) {
+            if (row.passengerHasSeat(ticket.getPassenger())) {
                 throw new IllegalStateException("Passenger already has a seat");
             }
         }
 
-        seatPassenger(rowNumber, seat, passengerName);
+        seatPassenger(rowNumber, seat, ticket);
     }
 
-    public void changeSeat(int newRow, char newSeat, String passengerName) {
+    public void changeSeat(int newRow, char newSeat, Ticket ticket) { // TODO: concurrencia
         checkValidRow(newRow);
         if (state != FlightState.PENDING) {
             throw new IllegalStateException("Plane is not in pending state");
         }
 
         for (Row row : rows) {
-            if (row.passengerHasSeat(passengerName)) {
-                row.removePassenger(passengerName);
-                availableSeats[row.getRowCategory().getValue()]--;
-                break;
+            if (row.passengerHasSeat(ticket.getPassenger())) {
+                if (row.getRowCategory().ordinal() < ticket.getCategory().ordinal())
+                    throw new IllegalArgumentException("Passenger category is not permited");
+
+                row.removePassenger(ticket.getPassenger());
+                availableSeats[row.getRowCategory().ordinal()]++;
+                seatPassenger(newRow, newSeat, ticket);
+                return;
             }
         }
-        seatPassenger(newRow, newSeat, passengerName);
+
+        throw new IllegalStateException("Passenger does not have a seat");
     }
 
     public boolean checkSeat(int row, char seat) {
@@ -82,6 +90,10 @@ public class Plane {
             throw new IllegalStateException("Plane is not in pending state");
         }
         return rows[row].isAvailable(seat);
+    }
+
+    public int[] getAvailableSeats() {
+        return availableSeats;
     }
 
     private void checkValidRow(int row) {
@@ -95,17 +107,41 @@ public class Plane {
     }
 
     //TODO: Revisar
-    private boolean validParams(int businessRows, int businessCols, int premEconomyRows, int premEconomyCols, int economyRows, int economyCols) {
-        return (businessRows + premEconomyRows + economyRows > 0) && (businessRows > 0 && businessCols > 0 || premEconomyRows > 0 && premEconomyCols > 0 || economyRows > 0 && economyCols > 0);
+    private boolean validParams(int[] business, int[] premEconomy, int[] economy) {
+        return business[0] >= 0 && business[1] >= 0 && premEconomy[0] >= 0 && premEconomy[1] >= 0 &&
+                economy[0] >= 0 && economy[1] >= 0 && (business[0] + premEconomy[0] + economy[0]) > 0;
     }
 
     public Row[] getRows() {
         return rows;
     }
 
-    private void seatPassenger(int rowNumber, char seat, String passengerName) {
+    private void seatPassenger(int rowNumber, char seat, Ticket ticket) {
         Row row = rows[rowNumber];
-        row.assignSeat(seat, passengerName); //tira exception si estás pisando a alguien en un asiento
-        availableSeats[row.getRowCategory().getValue()]--;
+        row.assignSeat(seat, ticket.getPassenger()); //tira exception si estás pisando a alguien en un asiento
+        availableSeats[row.getRowCategory().ordinal()]--;
+    }
+
+    public void findSeat(Ticket ticket) { // TODO: concurrencia
+        for (Row row : rows) {
+            if (row.getRowCategory().ordinal() >= ticket.getCategory().ordinal() && row.hasAvailableSeats()) {
+                row.findSeat(ticket.getPassenger());
+                availableSeats[row.getRowCategory().ordinal()]--;
+                return;
+            }
+        }
+
+        throw new IllegalStateException("No seats available for category " + ticket.getCategory());
+    }
+
+    public void removeTicket(Ticket ticket) {
+        String passenger = ticket.getPassenger();
+        for (Row row : rows) {
+            if (row.passengerHasSeat(passenger)) {
+                row.removePassenger(passenger);
+                availableSeats[row.getRowCategory().ordinal()]++;
+                return;
+            }
+        }
     }
 }

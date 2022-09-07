@@ -14,4 +14,8 @@ public enum FlightActions {
     public String getDescription() {
         return description;
     }
+
+    public static FlightActions getAction(String param) {
+        return valueOf(param.toUpperCase());
+    }
 }

@@ -2,9 +2,10 @@ package ar.edu.itba.pod.models;
 
 import ar.edu.itba.pod.models.RowCategory;
 
+import java.io.Serializable;
 import java.util.Objects;
 
-public class Ticket {
+public class Ticket implements Serializable {
     private final RowCategory category;
     private final String passenger;
     private final String destination;

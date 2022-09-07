@@ -9,7 +9,7 @@ public class FlightManagerParser {
     private static final String SERVER_ADDRESS = "serverAddress";
     private static final String ACTION = "action";
     private static final String PATH = "inPath";
-    private static final String FLIGHT_CODE = "flight";
+    private static final String FLIGHT_CODE = "flights";
 
     private String serverAddress;
     private Optional<FlightActions> action;
@@ -25,7 +25,7 @@ public class FlightManagerParser {
         }
 
         try {
-            action = Optional.ofNullable(props.getProperty(ACTION)).map(FlightActions::valueOf);
+            action = Optional.ofNullable(props.getProperty(ACTION)).map(FlightActions::getAction);
         } catch (IllegalArgumentException e) {
             System.out.println("Invalid action");
             System.exit(1);

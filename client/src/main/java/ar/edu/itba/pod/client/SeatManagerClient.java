@@ -3,8 +3,8 @@ package ar.edu.itba.pod.client;
 
 import ar.edu.itba.pod.client.parsers.SeatManagerParser;
 import ar.edu.itba.pod.interfaces.SeatManagerService;
-import com.sun.org.slf4j.internal.Logger;
-import com.sun.org.slf4j.internal.LoggerFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.net.MalformedURLException;
 import java.rmi.Naming;
@@ -18,7 +18,7 @@ public class SeatManagerClient {
         SeatManagerParser parser = new SeatManagerParser();
         parser.parse();
 
-        // logger.info("Flight Notifications Client Starting ...");
+        logger.info("Flight Notifications Client Starting ...");
 
         SeatManagerService service =
                 (SeatManagerService) Naming.lookup("//127.0.0.1:1099/" + SeatManagerService.class.getName());

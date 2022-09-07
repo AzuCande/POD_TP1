@@ -43,18 +43,25 @@ public class FlightManagerServiceImpl implements FlightManagerService {
     @Override
     public void addFlight(String planeModel, String flightCode, String destination, List<Ticket> tickets) throws RemoteException {
         store.getFlightsLock().lock();
-        if (store.getPlaneModels().getOrDefault(planeModel, null) != null) {
-            store.getFlightsLock().unlock(); // TODO: podriamos hacer un try catch con un finally con try lock
-            throw new RuntimeException();
+
+        boolean isOccupied;
+
+        try {
+            if (store.getPlaneModels().getOrDefault(planeModel, null) == null) {
+                // TODO: podriamos hacer un try catch con un finally con try lock
+                throw new RuntimeException();
+            }
+
+            isOccupied = store.getFlights().containsKey(flightCode);
+
+            if (isOccupied)
+                throw new RuntimeException();
+
+            store.getFlights().put(flightCode, null);
+        } finally {
+            store.getFlightsLock().unlock();
         }
 
-        boolean isOccupied = store.getFlights().containsKey(flightCode);
-
-        if (!isOccupied)
-            store.getFlights().put(flightCode, null);
-        modelsLock.unlock();
-        if (isOccupied)
-            throw new RuntimeException();
         PlaneModel model = store.getPlaneModels().get(planeModel);
         store.getFlights().put(flightCode, new Flight(new Plane(model), flightCode, destination, tickets));
     }
@@ -62,13 +69,13 @@ public class FlightManagerServiceImpl implements FlightManagerService {
     @Override
     public Collection<PlaneModel> getPlaneModels() {
         // TODO: que onda la lectura?
-        return store.getPlaneModels().values();
+        return new ArrayList<>(store.getPlaneModels().values());
     }
 
     @Override
     public Collection<Flight> getFlights() {
         // TODO: que onda la lectura?
-        return store.getFlights().values();
+        return new ArrayList<>(store.getFlights().values());
     }
 
     @Override
@@ -123,22 +130,59 @@ public class FlightManagerServiceImpl implements FlightManagerService {
         Map<FlightState, List<Flight>> partition = store.getFlights().values().stream()
                 .filter(flight -> !flight.getState().equals(FlightState.CONFIRMED))
                 .collect(Collectors.groupingBy(Flight::getState));
-        List<Flight> cancelledFlights = partition.get(FlightState.CANCELED);
-        List<Flight> pendingFlights = partition.get(FlightState.PENDING);
 
-        for (Flight cancelled : cancelledFlights) { //TODO : debe ser procesado en orden alfabetico por codigo de vuelo
-            for(Ticket passenger : cancelled.getTickets()){ //TODO : debe ser procesado alfabeticamente por orden del pasajero
-                //encontrar una alternative flight
-                String destination = passenger.getDestination();
+        List<Flight> cancelledFlights = partition.get(FlightState.CANCELED)
+                .stream().sorted(Comparator.comparing(Flight::getCode)).collect(Collectors.toList());
 
-                List<Flight> alternativeFlights = store.getFlights().values()
-                        .stream().filter(flight -> Objects.equals(flight.getDestination(), destination) && flight.getState() == FlightState.PENDING)
+        List<Flight> pendingFlights = partition.get(FlightState.PENDING)
+                .stream().sorted(Comparator.comparing(Flight::getCode)).collect(Collectors.toList());
+
+        List<Ticket> toRemove = new ArrayList<>();
+
+        for (Flight cancelled : cancelledFlights) {
+            List<Ticket> tickets = cancelled.getTickets()
+                    .stream().sorted(Comparator.comparing(Ticket::getPassenger)).collect(Collectors.toList());
+            for (Ticket ticket : tickets) {
+                String destination = ticket.getDestination();
+                RowCategory category = ticket.getCategory();
+
+                List<Flight> alternativeFlights = pendingFlights
+                        .stream()
+                        .filter(flight -> Objects.equals(flight.getDestination(), destination) &&
+                                hasAvailableSeats(flight, category))
+                        .sorted(Comparator.comparing(flight -> getAvailableSeats(flight, category)))
                         .collect(Collectors.toList());
 
-                //ahora filtrar que el vuelo tenga lugar en su categoría o inferior
+                if (alternativeFlights.isEmpty()) {
+                    logger.info("No alternative flights found for passenger " + ticket.getPassenger());
+                    continue;
+                }
 
-                //y cambiar a cada passenger a su alternative flight
+                Flight newFlight = alternativeFlights.get(0);
+
+                // Transfer ticket from cancelled to newFlight
+                //cancelled.removeTicket(ticket); // TODO: esto es legal mientras itero? no
+                toRemove.add(ticket);
+                newFlight.findSeat(ticket);
             }
+            for(Ticket remove : toRemove){
+                cancelled.removeTicket(remove);
+            }
+            toRemove.clear();
         }
+    }
+
+    private int getAvailableSeats(Flight flight, RowCategory category) {
+        int[] availableSeats = flight.getPlane().getAvailableSeats();
+        for (int i = category.ordinal(); i >= 0; i--) {
+            if (availableSeats[i] > 0)
+                return i;
+        }
+
+        return -1;
+    }
+
+    private boolean hasAvailableSeats(Flight flight, RowCategory category) {
+        return getAvailableSeats(flight, category) != -1;
     }
 }

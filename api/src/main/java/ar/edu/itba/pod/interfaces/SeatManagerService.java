@@ -1,7 +1,11 @@
 package ar.edu.itba.pod.interfaces;
 
+import ar.edu.itba.pod.models.Flight;
+
 import java.rmi.Remote;
 import java.rmi.RemoteException;
+import java.util.Collection;
+import java.util.List;
 
 public interface SeatManagerService extends Remote {
     boolean isAvailable(String flightCode, int row, char seat) throws RemoteException;
@@ -10,8 +14,7 @@ public interface SeatManagerService extends Remote {
 
     void changeSeat(String flightCode, String passenger, int freeRow, char freeSeat) throws RemoteException;
 
-    //TODO: es void?
-    void listAlternativeFlights(String flightCode, String passenger) throws RemoteException;
+    List<Flight> listAlternativeFlights(String flightCode, String passenger) throws RemoteException;
 
     void changeFlight(String passenger, String oldFlightCode, String newFlightCode) throws RemoteException;
 }

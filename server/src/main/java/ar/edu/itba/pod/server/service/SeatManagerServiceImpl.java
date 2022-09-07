@@ -1,10 +1,7 @@
 package ar.edu.itba.pod.server.service;
 
 import ar.edu.itba.pod.interfaces.SeatManagerService;
-import ar.edu.itba.pod.models.Flight;
-import ar.edu.itba.pod.models.FlightState;
-import ar.edu.itba.pod.models.RowCategory;
-import ar.edu.itba.pod.models.Ticket;
+import ar.edu.itba.pod.models.*;
 import ar.edu.itba.pod.server.ServerStore;
 
 import java.rmi.RemoteException;
@@ -25,7 +22,6 @@ public class SeatManagerServiceImpl implements SeatManagerService {
 
     @Override
     public boolean isAvailable(String flightCode, int row, char seat) throws RemoteException {
-
         validateFlightCode(flightCode);
         seatLock.lock();
         boolean isAvailable = store.getFlights().get(flightCode).getPlane().checkSeat(row, seat);
@@ -35,11 +31,12 @@ public class SeatManagerServiceImpl implements SeatManagerService {
 
     @Override
     public void assign(String flightCode, String passenger, int row, char seat) throws RemoteException {
-
         //TODO: chequear
         Flight flight = getValidatedFlight(flightCode, passenger, row, seat);
+        RowCategory category = flight.getPlane().getRows()[row].getRowCategory();
+        Ticket ticket = new Ticket(category, passenger, flight.getDestination());
         seatLock.lock();
-        flight.getPlane().assignSeat(row, seat, passenger);
+        flight.getPlane().assignSeat(row, seat, ticket);
         seatLock.unlock();
     }
 
@@ -47,7 +44,7 @@ public class SeatManagerServiceImpl implements SeatManagerService {
     public void changeSeat(String flightCode, String passenger, int freeRow, char freeSeat) throws RemoteException {
         Flight flight = getValidatedFlight(flightCode, passenger, freeRow, freeSeat);
         seatLock.lock();
-        flight.getPlane().changeSeat(freeRow, freeSeat, passenger);
+        flight.changeSeat(freeRow, freeSeat, passenger);
         seatLock.unlock();
     }
 
@@ -56,26 +53,48 @@ public class SeatManagerServiceImpl implements SeatManagerService {
         Flight flight = store.getFlights().get(flightCode);
         RowCategory ticketCategory = getTicket(flight, passenger).getCategory();
         RowCategory category = flight.getPlane().getRows()[row].getRowCategory();
-        if (category.getValue() > ticketCategory.getValue())
+        if (category.ordinal() > ticketCategory.ordinal())
             throw new RuntimeException();
         return flight;
     }
 
     @Override
-    public void listAlternativeFlights(String flightCode, String passenger) throws RemoteException { //TODO : return string ?
+    public List<Flight> listAlternativeFlights(String flightCode, String passenger) throws RemoteException { //TODO : return string ?
         validateFlightCode(flightCode);
 
         //TODO: listAlternativeFlights
+
+        //      JFK | AA101 | 7 BUSINESS
+        //      JFK | AA119 | 3 BUSINESS
+        //      JFK | AA103 | 18 PREMIUM_ECONOMY
 
         Flight flight = store.getFlights().get(flightCode);
         Ticket ticket = getTicket(flight, passenger);
         String destination = ticket.getDestination();
 
         List<Flight> alternativeFlights = store.getFlights().values()
-                .stream().filter(f -> Objects.equals(flight.getDestination(), destination) && f.getState() == FlightState.PENDING
-                )
+                .stream().filter(f -> f.getDestination().equals(destination)
+                        && f.getState() == FlightState.PENDING)
                 .collect(Collectors.toList());
 //        alternativeFlights = alternativeFlights.stream().filter();
+
+//        List<FlightResponse> toRet = compact(alternativeFlights);
+
+        return alternativeFlights;
+
+//        StringBuilder stringBuilder = new StringBuilder();
+//        for (Flight f : alternativeFlights) {
+//            stringBuilder.append(f.getDestination()).append(" | ");
+//            stringBuilder.append(f.getCode()).append(" | ");
+//            for (int category = ticket.getCategory().ordinal();
+//                 category >= 0; category--) {
+//                RowCategory cat = RowCategory.values()[category];
+//                stringBuilder.append(f.getAvailableSeats(cat)).append(" ").append(cat).append('\n');
+//            }
+//
+//        }
+
+
     }
 
     @Override
@@ -83,7 +102,6 @@ public class SeatManagerServiceImpl implements SeatManagerService {
     }
 
     private void validateFlightCode(String flightCode) {
-
         store.getFlightsLock().lock();
         if (!store.getFlights().containsKey(flightCode)) {
             store.getFlightsLock().unlock();
@@ -94,7 +112,8 @@ public class SeatManagerServiceImpl implements SeatManagerService {
     }
 
     private Ticket getTicket(Flight flight, String passenger) {
-        return flight.getTickets().stream().filter(t -> Objects.equals(t.getPassenger(), passenger)).findFirst().orElseThrow(RuntimeException::new);
+        return flight.getTickets().stream().filter(t -> t.getPassenger().equals(passenger))
+                .findFirst().orElseThrow(RuntimeException::new);
     }
 
 
