@@ -1,5 +1,7 @@
 package ar.edu.itba.pod.models;
 
+import sun.security.krb5.internal.Ticket;
+
 public class Row {
     private final RowCategory rowCategory;
     private final String[] seatOwners; // TODO modelo de esto en base a la concurrencia

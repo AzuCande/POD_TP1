@@ -6,9 +6,11 @@ import java.util.concurrent.locks.ReentrantLock;
 public class Plane {
     private final PlaneModel model;
     private final Row[] rows;
-    private final FlightState state = FlightState.PENDING; // TODO: deprecated
+    private final FlightState state = FlightState.PENDING;
 
     private final Lock seatLock = new ReentrantLock();
+
+    private final int[] availableSeats = {0, 0, 0};
 
     public Plane(PlaneModel model) {
         this.model = model;
@@ -36,6 +38,9 @@ public class Plane {
             rows[iter] = new Row(RowCategory.ECONOMY, economy[1]);
         }
 
+        availableSeats[RowCategory.BUSINESS.getValue()] += business[0] * business[1];
+        availableSeats[RowCategory.PREMIUM_ECONOMY.getValue()] += premium[0] * premium[1];
+        availableSeats[RowCategory.ECONOMY.getValue()] += economy[0] * economy[1];
     }
 
     public void assignSeat(int rowNumber, char seat, String passengerName) { //TODO: usar ticket y no passenger
@@ -46,45 +51,29 @@ public class Plane {
         }
         //TODO : check if passenger category is permited
 
-        //TODO: revisar
-        this.seatLock.lock();
         for (Row row : rows) {
             if (row.passengerHasSeat(passengerName)) {
                 throw new IllegalStateException("Passenger already has a seat");
             }
         }
-        rows[rowNumber].assignSeat(seat, passengerName);
-        this.seatLock.unlock();
+
+        seatPassenger(rowNumber, seat, passengerName);
     }
 
-    public void changeSeat(int newRow, char newSeat, String passengerName) {//TODO: usar ticket y no passenger
-
+    public void changeSeat(int newRow, char newSeat, String passengerName) {
         checkValidRow(newRow);
         if (state != FlightState.PENDING) {
             throw new IllegalStateException("Plane is not in pending state");
         }
 
-        RowCategory prevRowCategory = null;
         for (Row row : rows) {
             if (row.passengerHasSeat(passengerName)) {
                 row.removePassenger(passengerName);
-                prevRowCategory = row.getRowCategory();
+                availableSeats[row.getRowCategory().getValue()]--;
                 break;
             }
         }
-
-        if (prevRowCategory == null) {
-            throw new IllegalStateException("Passenger does not have a seat");
-        }
-
-        // TODO: revisar, ticket tiene categoria
-        if (prevRowCategory != rows[newRow].getRowCategory()) {
-            throw new IllegalStateException("Passenger cannot change seat category");
-        }
-
-        //lock
-        rows[newRow].assignSeat(newSeat, passengerName);
-        //unlock
+        seatPassenger(newRow, newSeat, passengerName);
     }
 
     public boolean checkSeat(int row, char seat) {
@@ -112,5 +101,11 @@ public class Plane {
 
     public Row[] getRows() {
         return rows;
+    }
+
+    private void seatPassenger(int rowNumber, char seat, String passengerName) {
+        Row row = rows[rowNumber];
+        row.assignSeat(seat, passengerName); //tira exception si estás pisando a alguien en un asiento
+        availableSeats[row.getRowCategory().getValue()]--;
     }
 }

@@ -13,5 +13,5 @@ public interface SeatManagerService extends Remote {
     //TODO: es void?
     void listAlternativeFlights(String flightCode, String passenger) throws RemoteException;
 
-    void changeTicket(String passenger, String oldFlightCode, String newFlightCode) throws RemoteException;
+    void changeFlight(String passenger, String oldFlightCode, String newFlightCode) throws RemoteException;
 }

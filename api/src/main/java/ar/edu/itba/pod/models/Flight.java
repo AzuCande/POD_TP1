@@ -1,5 +1,6 @@
 package ar.edu.itba.pod.models;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -8,13 +9,14 @@ public class Flight {
     private FlightState state = FlightState.PENDING;
     private final Plane plane;
     private final String destination;
-    private final Map<RowCategory, Set<String>> ticketMap;
+    private final List<Ticket> tickets;
 
-    public Flight(Plane plane, String code, String destination, Map<RowCategory, Set<String>> ticketMap) {
+
+    public Flight(Plane plane, String code, String destination, List<Ticket> tickets) {
         this.plane = plane;
         this.code = code;
         this.destination = destination;
-        this.ticketMap = ticketMap;
+        this.tickets = tickets;
     }
 
     public Plane getPlane() {
@@ -25,8 +27,9 @@ public class Flight {
         return destination;
     }
 
-    public Map<RowCategory, Set<String>> getTicketMap() {
-        return ticketMap;
+
+    public List<Ticket> getTickets() {
+        return tickets;
     }
 
     public String getCode() {

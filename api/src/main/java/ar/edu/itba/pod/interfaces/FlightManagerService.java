@@ -1,21 +1,18 @@
 package ar.edu.itba.pod.interfaces;
 
-import ar.edu.itba.pod.models.FlightState;
-import ar.edu.itba.pod.models.PlaneModel;
-import ar.edu.itba.pod.models.Flight;
-import ar.edu.itba.pod.models.RowCategory;
-
+import ar.edu.itba.pod.models.*;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 public interface FlightManagerService extends Remote {
     void addPlaneModel(String model, Map<String, int[]> seatCategories) throws RemoteException;
 
-    void addFlight(String planeModel, String flightCode, String destination, Map<RowCategory, Set<String>> ticketMap) throws RemoteException;
+    void addFlight(String planeModel, String flightCode, String destination, List<Ticket> tickets) throws RemoteException;
 
     FlightState getFlightState(String flightCode) throws RemoteException;
 

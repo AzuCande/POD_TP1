@@ -41,7 +41,7 @@ public class FlightManagerServiceImpl implements FlightManagerService {
     }
 
     @Override
-    public void addFlight(String planeModel, String flightCode, String destination, Map<RowCategory, Set<String>> ticketMap) throws RemoteException {
+    public void addFlight(String planeModel, String flightCode, String destination, List<Ticket> tickets) throws RemoteException {
         store.getFlightsLock().lock();
         if (store.getPlaneModels().getOrDefault(planeModel, null) != null) {
             store.getFlightsLock().unlock(); // TODO: podriamos hacer un try catch con un finally con try lock
@@ -56,7 +56,7 @@ public class FlightManagerServiceImpl implements FlightManagerService {
         if (isOccupied)
             throw new RuntimeException();
         PlaneModel model = store.getPlaneModels().get(planeModel);
-        store.getFlights().put(flightCode, new Flight(new Plane(model), flightCode, destination, ticketMap));
+        store.getFlights().put(flightCode, new Flight(new Plane(model), flightCode, destination, tickets));
     }
 
     @Override
@@ -126,8 +126,19 @@ public class FlightManagerServiceImpl implements FlightManagerService {
         List<Flight> cancelledFlights = partition.get(FlightState.CANCELED);
         List<Flight> pendingFlights = partition.get(FlightState.PENDING);
 
-        for (Flight cancelled : cancelledFlights) {
+        for (Flight cancelled : cancelledFlights) { //TODO : debe ser procesado en orden alfabetico por codigo de vuelo
+            for(Ticket passenger : cancelled.getTickets()){ //TODO : debe ser procesado alfabeticamente por orden del pasajero
+                //encontrar una alternative flight
+                String destination = passenger.getDestination();
 
+                List<Flight> alternativeFlights = store.getFlights().values()
+                        .stream().filter(flight -> Objects.equals(flight.getDestination(), destination) && flight.getState() == FlightState.PENDING)
+                        .collect(Collectors.toList());
+
+                //ahora filtrar que el vuelo tenga lugar en su categoría o inferior
+
+                //y cambiar a cada passenger a su alternative flight
+            }
         }
     }
 }

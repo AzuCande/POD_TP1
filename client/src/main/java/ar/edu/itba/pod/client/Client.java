@@ -2,6 +2,7 @@ package ar.edu.itba.pod.client;
 
 import ar.edu.itba.pod.interfaces.FlightManagerService;
 import ar.edu.itba.pod.models.RowCategory;
+import ar.edu.itba.pod.models.Ticket;
 import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
@@ -72,10 +73,15 @@ public class Client {
             reader.readNext();
             int lineNumber = 1;
 
-            Map<RowCategory, Set<String>> ticketMap = new EnumMap<>(RowCategory.class); //category -> Set<names>
-            ticketMap.put(RowCategory.BUSINESS, new HashSet<>());
-            ticketMap.put(RowCategory.PREMIUM_ECONOMY, new HashSet<>());
-            ticketMap.put(RowCategory.ECONOMY, new HashSet<>());
+//            Map<RowCategory, Set<String>> ticketMap = new EnumMap<>(RowCategory.class); //category -> Set<names>
+//            ticketMap.put(RowCategory.BUSINESS, new HashSet<>());
+//            ticketMap.put(RowCategory.PREMIUM_ECONOMY, new HashSet<>());
+//            ticketMap.put(RowCategory.ECONOMY, new HashSet<>());
+
+
+
+            List<Ticket> tickets = new ArrayList<>();
+
 
             while ((nextLine = reader.readNext()) != null) {
                 String planeModel = nextLine[0];
@@ -94,9 +100,10 @@ public class Client {
                     String[] parts = passenger.split("#");
                     RowCategory seatCategory = RowCategory.valueOf(parts[0]);
                     String name = parts[1];
-                    ticketMap.get(seatCategory).add(name);
+                    tickets.add(new Ticket(seatCategory,name, destination));
+//                    ticketMap.get(seatCategory).add(name);
                 }
-                flightManager.addFlight(planeModel, flightCode, destination, ticketMap);
+                flightManager.addFlight(planeModel, flightCode, destination, tickets);
                 lineNumber++;
             }
         } catch (IOException e) {
