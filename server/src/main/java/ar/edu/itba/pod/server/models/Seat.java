@@ -1,4 +1,4 @@
-package ar.edu.itba.pod.server.model;
+package ar.edu.itba.pod.server.models;
 
 public class Seat {
     private final String letter;

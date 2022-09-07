@@ -1,4 +1,4 @@
-package ar.edu.itba.pod.model;
+package ar.edu.itba.pod.models;
 
 public class Plane {
     private final PlaneModel model;
@@ -49,7 +49,7 @@ public class Plane {
     }
 
     public void changeSeat(int newRow, char newSeat, String passengerName) {//TODO: usar ticket y no passenger
-        
+
         checkValidRow(newRow);
         if (state != FlightState.PENDING) {
             throw new IllegalStateException("Plane is not in pending state");
@@ -74,6 +74,14 @@ public class Plane {
         }
 
         rows[newRow].assignSeat(newSeat, passengerName);
+    }
+
+    public boolean checkSeat(int row, char seat) {
+        checkValidRow(row);
+        if (state != FlightState.PENDING) {
+            throw new IllegalStateException("Plane is not in pending state");
+        }
+        return rows[row].isAvailable(seat);
     }
 
     private void checkValidRow(int row) {

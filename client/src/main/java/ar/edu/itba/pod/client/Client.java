@@ -1,6 +1,7 @@
 package ar.edu.itba.pod.client;
 
 import ar.edu.itba.pod.interfaces.FlightManagerService;
+import ar.edu.itba.pod.models.RowCategory;
 import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
@@ -15,10 +16,7 @@ import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class Client {
     private static final Logger logger = LoggerFactory.getLogger(Client.class);
@@ -72,10 +70,10 @@ public class Client {
             reader.readNext();
             int lineNumber = 1;
 
-            Map<String, Set<String>> ticketMap = new HashMap<>(); //category -> Set<names>
-            ticketMap.put("BUSINESS", new HashSet<>());
-            ticketMap.put("PREMIUM_ECONOMY", new HashSet<>());
-            ticketMap.put("ECONOMY", new HashSet<>());
+            Map<RowCategory, Set<String>> ticketMap = new EnumMap<>(RowCategory.class); //category -> Set<names>
+            ticketMap.put(RowCategory.BUSINESS, new HashSet<>());
+            ticketMap.put(RowCategory.PREMIUM_ECONOMY, new HashSet<>());
+            ticketMap.put(RowCategory.ECONOMY, new HashSet<>());
 
             while ((nextLine = reader.readNext()) != null) {
                 String planeModel = nextLine[0];
@@ -92,14 +90,13 @@ public class Client {
 //                }
                 for (String passenger : passengers) {
                     String[] parts = passenger.split("#");
-                    String seatCategory = parts[0];
+                    RowCategory seatCategory = RowCategory.valueOf(parts[0]);
                     String name = parts[1];
                     ticketMap.get(seatCategory).add(name);
                 }
                 flightManager.addFlight(planeModel, flightCode, destination, ticketMap);
                 lineNumber++;
             }
-
         } catch (IOException e) {
             e.printStackTrace();
         } catch (RuntimeException | CsvValidationException e) {

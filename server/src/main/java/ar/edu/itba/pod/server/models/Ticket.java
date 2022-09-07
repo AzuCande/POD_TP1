@@ -1,6 +1,6 @@
-package ar.edu.itba.pod.server.model;
+package ar.edu.itba.pod.server.models;
 
-import ar.edu.itba.pod.model.RowCategory;
+import ar.edu.itba.pod.models.RowCategory;
 
 public class Ticket {
     private final String id;
