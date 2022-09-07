@@ -11,7 +11,7 @@ import java.rmi.RemoteException;
 import static ar.edu.itba.pod.client.utils.FlightActions.*;
 
 public class FlightManagerClient {
-    private static final Logger logger = LoggerFactory.getLogger(FlightManagerClient.class);
+    private static final Logger logger = LoggerFactory.getLogger(FlightManagerClient.class); // TODO: SymbolError con mvn install
 
     public static void main(String[] args) throws MalformedURLException, NotBoundException, RemoteException {
         FlightManagerParser parser = new FlightManagerParser();

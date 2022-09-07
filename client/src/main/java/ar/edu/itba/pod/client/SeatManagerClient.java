@@ -44,7 +44,7 @@ public class SeatManagerClient {
                         parser.getColumn().orElseThrow(RuntimeException::new));
                 break;
             case CHANGE_TICKET:
-                service.changeTicket(parser.getPassenger().orElseThrow(RuntimeException::new),
+                service.changeFlight(parser.getPassenger().orElseThrow(RuntimeException::new),
                         parser.getOriginalFlightCode().orElseThrow(RuntimeException::new),
                         parser.getFlightCode());
                 break;
