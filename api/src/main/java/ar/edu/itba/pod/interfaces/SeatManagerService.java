@@ -1,11 +1,9 @@
 package ar.edu.itba.pod.interfaces;
 
-import ar.edu.itba.pod.models.Flight;
 import ar.edu.itba.pod.models.FlightResponse;
 
 import java.rmi.Remote;
 import java.rmi.RemoteException;
-import java.util.Collection;
 import java.util.List;
 
 public interface SeatManagerService extends Remote {

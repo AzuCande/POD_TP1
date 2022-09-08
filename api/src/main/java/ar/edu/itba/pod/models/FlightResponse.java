@@ -12,7 +12,7 @@ public class FlightResponse implements Serializable {
     private Map<RowCategory, Integer> availableSeats;
 
 
-    FlightResponse(String flightCode, String destination, Map<RowCategory, Integer> availableSeats){
+    public FlightResponse(String flightCode, String destination, Map<RowCategory, Integer> availableSeats){
         this.flightCode = flightCode;
         this.destination = destination;
         this.availableSeats = availableSeats;
@@ -22,6 +22,7 @@ public class FlightResponse implements Serializable {
     //      JFK | AA119 | 3 BUSINESS
     //      JFK | AA103 | 18 PREMIUM_ECONOMY
 
+    /*
     public static List<FlightResponse> compactFlights(List<Flight> flights){
         List<FlightResponse> toRet = new ArrayList<>();
         for(Flight flight : flights){
@@ -34,6 +35,7 @@ public class FlightResponse implements Serializable {
         return toRet;
     }
 
+     */
 
 
 }

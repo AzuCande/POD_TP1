@@ -1,13 +1,11 @@
 package ar.edu.itba.pod.server;
 
 import ar.edu.itba.pod.callbacks.NotificationHandler;
-import ar.edu.itba.pod.models.Flight;
+import ar.edu.itba.pod.server.models.Flight;
 import ar.edu.itba.pod.models.PlaneModel;
 
 import java.rmi.RemoteException;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.Lock;
@@ -47,12 +45,22 @@ public class ServerStore {
      * to read the latest value
      */
     public void registerUser(String flightCode, String passenger, NotificationHandler handler) {
+        Map<String, List<NotificationHandler>> flightNotifications;
         notificationsLock.lock();
 
-        notifications.computeIfAbsent(flightCode, k -> new HashMap<>())
-                        .computeIfAbsent(passenger, k -> new ArrayList<>()).add(handler);
+        flightNotifications = notifications.computeIfAbsent(flightCode, k -> new HashMap<>());
+                        //.computeIfAbsent(passenger, k -> new ArrayList<>()).add(handler);
 
         notificationsLock.unlock();
+
+        List<NotificationHandler> passengerNotifications;
+        synchronized (flightNotifications) { // TODO: preguntar lo de sync sobre local variable
+            passengerNotifications = flightNotifications.computeIfAbsent(passenger, k -> new ArrayList<>());
+        }
+
+        synchronized (passengerNotifications) {
+            passengerNotifications.add(handler);
+        }
 
         executor.submit(() -> {
             try {

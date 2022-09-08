@@ -20,12 +20,4 @@ public interface FlightManagerService extends Remote {
     void cancelFlight(String flightCode) throws RemoteException;
 
     void changeCancelledFlights() throws RemoteException;
-
-    Collection<PlaneModel> getPlaneModels() throws RemoteException;
-
-    Collection<Flight> getFlights() throws RemoteException;
-
-    boolean hasPlaneModel(String PlaneModel) throws RemoteException;
-
-    boolean hasFlightCode(String flightCode) throws RemoteException;
 }

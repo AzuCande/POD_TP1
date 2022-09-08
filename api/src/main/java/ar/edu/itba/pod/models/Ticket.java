@@ -1,7 +1,5 @@
 package ar.edu.itba.pod.models;
 
-import ar.edu.itba.pod.models.RowCategory;
-
 import java.io.Serializable;
 import java.util.Objects;
 
@@ -9,11 +7,26 @@ public class Ticket implements Serializable {
     private final RowCategory category;
     private final String passenger;
     private final String destination;
+    private Integer row;
+    private Character col;
 
     public Ticket(RowCategory category, String passenger, String destination) {
         this.category = category;
         this.passenger = passenger;
         this.destination = destination;
+    }
+
+    public void setSeat(Integer row, Character col) {
+        this.row = row;
+        this.col = col;
+    }
+
+    public Integer getRow() {
+        return row;
+    }
+
+    public Character getCol() {
+        return col;
     }
 
     public String getPassenger() {
@@ -26,18 +39,5 @@ public class Ticket implements Serializable {
 
     public String getDestination(){
         return destination;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Ticket ticket = (Ticket) o;
-        return passenger.equals(ticket.passenger);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(passenger);
     }
 }

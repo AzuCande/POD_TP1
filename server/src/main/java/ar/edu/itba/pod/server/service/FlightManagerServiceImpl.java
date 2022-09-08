@@ -4,6 +4,8 @@ import ar.edu.itba.pod.callbacks.NotificationHandler;
 import ar.edu.itba.pod.models.*;
 import ar.edu.itba.pod.interfaces.FlightManagerService;
 import ar.edu.itba.pod.server.ServerStore;
+import ar.edu.itba.pod.server.models.Flight;
+import ar.edu.itba.pod.server.models.Plane;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,58 +29,55 @@ public class FlightManagerServiceImpl implements FlightManagerService {
     @Override
     public void addPlaneModel(String model, Map<String, int[]> seatCategories) {
         modelsLock.lock();
-        boolean isOccupied = store.getPlaneModels().containsKey(model);
-        if (!isOccupied)
-            store.getPlaneModels().put(model, null);
-        modelsLock.unlock();
-        // TODO: ver si con un concurrent map y compute if absent queda mejor
-        if (isOccupied)
-            throw new RuntimeException();
 
-        store.getPlaneModels().put(model, new PlaneModel(model, seatCategories));
-        logger.info("Added flight");
+        try {
+            if (store.getPlaneModels().containsKey(model))
+                throw new RuntimeException(); // TODO: nuestra excepcion
+
+            store.getPlaneModels().put(model, new PlaneModel(model, seatCategories));
+            logger.info("Added model");
+
+            // TODO: preguntar si es mucho tiempo porque la alternativa seria lockear 2 veces
+        } finally {
+            modelsLock.unlock();
+        }
 
     }
 
     @Override
     public void addFlight(String planeModel, String flightCode, String destination, List<Ticket> tickets) throws RemoteException {
-        store.getFlightsLock().lock();
-
-        boolean isOccupied;
-
+        PlaneModel model;
+        modelsLock.lock();
         try {
-            if (store.getPlaneModels().getOrDefault(planeModel, null) == null) {
-                // TODO: podriamos hacer un try catch con un finally con try lock
+            model = Optional.of(store.getPlaneModels()
+                    .get(planeModel)).orElseThrow(RuntimeException::new);
+        } finally {
+            modelsLock.unlock();
+        }
+
+        store.getFlightsLock().lock();
+        try {
+            if (store.getFlights().containsKey(flightCode))
                 throw new RuntimeException();
-            }
 
-            isOccupied = store.getFlights().containsKey(flightCode);
-
-            if (isOccupied)
-                throw new RuntimeException();
-
-            store.getFlights().put(flightCode, null);
+            store.getFlights().put(flightCode, new Flight(new Plane(model), flightCode, destination, tickets));
+            // TODO: preguntar si es mucho tiempo porque la alternativa seria lockear 2 veces
         } finally {
             store.getFlightsLock().unlock();
         }
-
-        PlaneModel model = store.getPlaneModels().get(planeModel);
-        store.getFlights().put(flightCode, new Flight(new Plane(model), flightCode, destination, tickets));
     }
 
-    @Override
     public Collection<PlaneModel> getPlaneModels() {
         // TODO: que onda la lectura?
         return new ArrayList<>(store.getPlaneModels().values());
     }
 
-    @Override
-    public Collection<Flight> getFlights() {
+    public Collection<FlightResponse> getFlights() {
         // TODO: que onda la lectura?
-        return new ArrayList<>(store.getFlights().values());
+//        return new ArrayList<>(store.getFlights().values());
+        return null;
     }
 
-    @Override
     public boolean hasPlaneModel(String PlaneModel) throws RemoteException { //TODO: check if string is in set
 //        modelsLock.lock();
         boolean hasPlane = store.getPlaneModels().containsKey(PlaneModel);
@@ -87,7 +86,6 @@ public class FlightManagerServiceImpl implements FlightManagerService {
 
     }
 
-    @Override
     public boolean hasFlightCode(String flightCode) throws RemoteException { //TODO: check if string is in set
         store.getFlightsLock().lock();
         boolean hasFlightCode = store.getFlights().containsKey(flightCode);
@@ -97,13 +95,16 @@ public class FlightManagerServiceImpl implements FlightManagerService {
 
     @Override
     public FlightState getFlightState(String flightCode) throws RemoteException {
-        Optional<FlightState> flightState = Optional.empty();
+        FlightState flightState;
         store.getFlightsLock().lock();
-        Flight flight = store.getFlights().getOrDefault(flightCode, null);
-        if (flight != null)
-            flightState = Optional.of(flight.getState());
-        store.getFlightsLock().unlock();
-        return flightState.orElseThrow(RuntimeException::new); // TODO nuestra excepcion
+        try {
+            flightState = Optional.of(store.getFlights().get(flightCode))
+                    .orElseThrow(RuntimeException::new).getState(); // TODO nuestra excepcion
+        } finally {
+            store.getFlightsLock().unlock();
+        }
+
+        return flightState;
     }
 
     @Override
@@ -117,52 +118,66 @@ public class FlightManagerServiceImpl implements FlightManagerService {
     }
 
     private void changeFlightState(String flightCode, FlightState state) {
+        Flight flight;
         store.getFlightsLock().lock();
-        Flight flight = Optional.ofNullable(store.getFlights().get(flightCode))
-                .filter(f -> f.getState().equals(FlightState.PENDING)).orElseThrow(IllegalArgumentException::new); // TODO: custom exception
+        try {
+            flight = Optional.ofNullable(store.getFlights().get(flightCode))
+                    .filter(f -> f.getState().equals(FlightState.PENDING))
+                    .orElseThrow(IllegalArgumentException::new); // TODO: custom exception
+        } finally {
+            store.getFlightsLock().unlock();
+        }
 
-        flight.setState(state);
-        store.getFlightsLock().unlock();
+        synchronized (flight) {
+            flight.setState(state);
+        }
 
-        // TODO: lockear las notificaciones
-        store.getNotifications().getOrDefault(flightCode, new HashMap<>()).forEach((passenger, handlers) -> {
-            try {
-                Ticket ticket = flight.getTickets().stream()
-                        .filter(t -> t.getPassenger().equals(passenger)).findFirst().orElseThrow(IllegalArgumentException::new);
+        Map<String, List<NotificationHandler>> flightNotifications;
+        store.getNotificationsLock().lock();
+        flightNotifications = store.getNotifications().get(flightCode);
+        store.getNotificationsLock().unlock();
 
-//                Row row = Arrays.stream(flight.getPlane().getRows()).filter(r -> r.passengerHasSeat(passenger)).findFirst().orElseThrow(IllegalArgumentException::new);
-//
-//                row.
-                for (NotificationHandler handler : handlers) {
-                    store.submitNotificationTask(() -> {
-                        try {
-                            switch (flight.getState()) {
-                                case CONFIRMED:
-                                    handler.notifyConfirmFlight(flightCode, flight.getDestination(),
-                                            state, ticket.getCategory(), 1, 'A');
-                                    break;
-                                case CANCELED:
-                                    handler.notifyCancelFlight(flightCode, flight.getDestination(),
-                                            state, ticket.getCategory(), 1, 'A');
-                                    break;
+        if (flightNotifications == null)
+            return;
+
+        synchronized (flightNotifications) { // TODO: preguntar si es excesivo
+            flightNotifications.forEach((passenger, handlers) -> {
+                synchronized (handlers) {
+                    Ticket ticket = flight.getTickets().stream()
+                            .filter(t -> t.getPassenger().equals(passenger)).findFirst()
+                            .orElseThrow(IllegalArgumentException::new); // TODO check
+
+                    for (NotificationHandler handler : handlers) {
+                        store.submitNotificationTask(() -> {
+                            try {
+                                switch (flight.getState()) {
+                                    case CONFIRMED:
+                                        handler.notifyConfirmFlight(flightCode, flight.getDestination(),
+                                                state, ticket.getCategory(), ticket.getRow(), ticket.getCol());
+                                        break;
+                                    case CANCELED:
+                                        handler.notifyCancelFlight(flightCode, flight.getDestination(),
+                                                state, ticket.getCategory(), ticket.getRow(), ticket.getCol());
+                                        break;
+                                }
+                            } catch (RemoteException e) {
+                                throw new RuntimeException(e); // TODO: excepcion propia
                             }
-                        } catch (RemoteException e) {
-                            throw new RuntimeException(e);
-                        }
-                    });
+                        });
+                    }
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
+            });
+        }
     }
 
     @Override
     public void changeCancelledFlights() throws RemoteException {
-        // TODO: concurrencia
+
+        store.getFlightsLock().lock();
         Map<FlightState, List<Flight>> partition = store.getFlights().values().stream()
                 .filter(flight -> !flight.getState().equals(FlightState.CONFIRMED))
                 .collect(Collectors.groupingBy(Flight::getState));
+        store.getFlightsLock().unlock();
 
         List<Flight> cancelledFlights = partition.get(FlightState.CANCELED)
                 .stream().sorted(Comparator.comparing(Flight::getCode)).collect(Collectors.toList());
@@ -170,36 +185,49 @@ public class FlightManagerServiceImpl implements FlightManagerService {
         List<Flight> pendingFlights = partition.get(FlightState.PENDING)
                 .stream().sorted(Comparator.comparing(Flight::getCode)).collect(Collectors.toList());
 
-        List<Ticket> toRemove = new ArrayList<>();
+//        List<Ticket> toRemove = new ArrayList<>();
 
         for (Flight cancelled : cancelledFlights) {
-            List<Ticket> tickets = cancelled.getTickets()
-                    .stream().sorted(Comparator.comparing(Ticket::getPassenger)).collect(Collectors.toList());
+            // TODO preguntar si hace falta sync con flights porque lo unico que cambiamos es el estado, no los tickets
+            List<Ticket> tickets = cancelled.getTickets().stream()
+                    .sorted(Comparator.comparing(Ticket::getPassenger)).collect(Collectors.toList());
+
             for (Ticket ticket : tickets) {
+                // TODO: no hace falta sync porque son final
                 String destination = ticket.getDestination();
                 RowCategory category = ticket.getCategory();
 
-                List<Flight> alternativeFlights = pendingFlights
-                        .stream()
+//                List<Flight> alternativeFlights = pendingFlights.stream()
+//                        .filter(flight -> Objects.equals(flight.getDestination(), destination) &&
+//                                hasAvailableSeats(flight, category))
+//                        .sorted(Comparator.comparing(flight -> flight.getPlane().getAvailableByCategory(category)))
+//                        .collect(Collectors.toList());
+                store.getFlightsLock().lock();
+                Flight newFlight = pendingFlights.stream()
                         .filter(flight -> Objects.equals(flight.getDestination(), destination) &&
                                 hasAvailableSeats(flight, category))
-                        .sorted(Comparator.comparing(flight -> getAvailableSeats(flight, category)))
-                        .collect(Collectors.toList());
+                        .min(Comparator.comparing(flight -> flight.getPlane().getAvailableByCategory(category)))
+                        .orElse(null);
 
-                if (alternativeFlights.isEmpty()) {
+                if (newFlight == null) {
                     logger.info("No alternative flights found for passenger " + ticket.getPassenger());
+                    store.getFlightsLock().unlock();
                     continue;
                 }
 
-                Flight newFlight = alternativeFlights.get(0);
+                newFlight.getPlane().getSeatLock().lock();
+                store.getFlightsLock().unlock();
 
-                // Transfer ticket from cancelled to newFlight
-                //cancelled.removeTicket(ticket); // TODO: esto es legal mientras itero? no.
-                // TODO: estas llamando a un metodo, no veo por qué no sería legal
-                toRemove.add(ticket);
-                newFlight.findSeat(ticket);
+                try {
+                    newFlight.findSeat(ticket);
+                } finally {
+                    newFlight.getPlane().getSeatLock().unlock();
+                }
 
-                // TODO chequeos de que se pudo hacer
+                cancelled.removeTicket(ticket);
+
+                // TODO: sincronizar notificaciones
+
                 store.getNotifications().getOrDefault(cancelled.getCode(), new HashMap<>())
                         .getOrDefault(ticket.getPassenger(), new ArrayList<>())
                         .forEach(handler -> store.submitNotificationTask(() -> {
@@ -214,10 +242,10 @@ public class FlightManagerServiceImpl implements FlightManagerService {
                         }));
 
             }
-            for (Ticket remove : toRemove) {
-                cancelled.removeTicket(remove);
-            }
-            toRemove.clear();
+//            for (Ticket remove : toRemove) {
+//                cancelled.removeTicket(remove);
+//            }
+//            toRemove.clear();
         }
     }
 
@@ -232,6 +260,6 @@ public class FlightManagerServiceImpl implements FlightManagerService {
     }
 
     private boolean hasAvailableSeats(Flight flight, RowCategory category) {
-        return getAvailableSeats(flight, category) != -1;
+        return flight.getPlane().getAvailableByCategory(category) != -1;
     }
 }

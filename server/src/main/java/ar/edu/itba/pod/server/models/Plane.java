@@ -1,4 +1,9 @@
-package ar.edu.itba.pod.models;
+package ar.edu.itba.pod.server.models;
+
+import ar.edu.itba.pod.models.FlightState;
+import ar.edu.itba.pod.models.PlaneModel;
+import ar.edu.itba.pod.models.RowCategory;
+import ar.edu.itba.pod.models.Ticket;
 
 import java.io.Serializable;
 import java.util.concurrent.locks.Lock;
@@ -96,6 +101,21 @@ public class Plane implements Serializable {
         return availableSeats;
     }
 
+    public int getAvailableByCategory(RowCategory category) {
+        int toReturn = -1;
+        //seatLock.lock();
+
+        for (int i = category.ordinal(); i >= 0; i--) {
+            if (availableSeats[i] > 0) {
+                toReturn = i;
+                break;
+            }
+        }
+
+        //seatLock.unlock();
+        return toReturn;
+    }
+
     private void checkValidRow(int row) {
         if (row < 0 || row >= rows.length) {
             throw new IllegalArgumentException("Row " + row + " does not exist");
@@ -143,5 +163,9 @@ public class Plane implements Serializable {
                 return;
             }
         }
+    }
+
+    public Lock getSeatLock() {
+        return seatLock;
     }
 }

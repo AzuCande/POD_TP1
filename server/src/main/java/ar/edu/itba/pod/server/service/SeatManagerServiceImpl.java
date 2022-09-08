@@ -1,10 +1,10 @@
 package ar.edu.itba.pod.server.service;
 
-import ar.edu.itba.pod.callbacks.NotificationHandler;
 import ar.edu.itba.pod.interfaces.SeatManagerService;
 import ar.edu.itba.pod.models.*;
 import ar.edu.itba.pod.models.FlightResponse;
 import ar.edu.itba.pod.server.ServerStore;
+import ar.edu.itba.pod.server.models.Flight;
 
 import java.rmi.RemoteException;
 import java.util.*;
@@ -72,8 +72,8 @@ public class SeatManagerServiceImpl implements SeatManagerService {
                         Ticket ticket = flight.getTickets().stream().filter(t -> t.getPassenger()
                                 .equals(passenger)).findFirst().orElseThrow(IllegalArgumentException::new);
                         handler.notifyChangeSeat(flightCode, flight.getDestination(),
-                                ticket.getCategory(), 1, 'A', RowCategory.ECONOMY,
-                                freeRow, freeSeat); // TODO: es el viejo
+                                ticket.getCategory(), ticket.getRow(), ticket.getCol(), RowCategory.ECONOMY,
+                                freeRow, freeSeat);
 
                     } catch (RemoteException e) {
                         e.printStackTrace();
@@ -111,10 +111,11 @@ public class SeatManagerServiceImpl implements SeatManagerService {
                 .collect(Collectors.toList());
 //        alternativeFlights = alternativeFlights.stream().filter();
 
-        List<FlightResponse> toRet = FlightResponse.compactFlights(alternativeFlights);
+        //List<FlightResponse> toRet = FlightResponse.compactFlights(alternativeFlights);
 
 //        return alternativeFlights;
-        return toRet;
+        //return toRet;
+        return new ArrayList<>();
 
 //        StringBuilder stringBuilder = new StringBuilder();
 //        for (Flight f : alternativeFlights) {

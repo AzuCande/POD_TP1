@@ -1,8 +1,9 @@
-package ar.edu.itba.pod.models;
+package ar.edu.itba.pod.server.models;
 
-import java.io.Serializable;
+import ar.edu.itba.pod.models.RowCategory;
 
-public class Row implements Serializable { // TODO se usa en una interfaz remota?
+
+public class Row { // TODO se usa en una interfaz remota?
     private final RowCategory rowCategory;
     private final String[] passengerNames; // TODO modelo de esto en base a la concurrencia
 

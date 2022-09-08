@@ -2,7 +2,7 @@ package ar.edu.itba.pod.server.service;
 
 import ar.edu.itba.pod.callbacks.NotificationHandler;
 import ar.edu.itba.pod.interfaces.NotificationService;
-import ar.edu.itba.pod.models.Flight;
+import ar.edu.itba.pod.server.models.Flight;
 import ar.edu.itba.pod.models.FlightState;
 import ar.edu.itba.pod.server.ServerStore;
 

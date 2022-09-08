@@ -1,11 +1,12 @@
-package ar.edu.itba.pod.models;
+package ar.edu.itba.pod.server.models;
 
-import java.io.Serializable;
+import ar.edu.itba.pod.models.FlightState;
+import ar.edu.itba.pod.models.RowCategory;
+import ar.edu.itba.pod.models.Ticket;
+
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
-public class Flight implements Serializable {
+public class Flight {
     private final String code;
     private FlightState state = FlightState.PENDING;
     private final Plane plane;
@@ -42,6 +43,7 @@ public class Flight implements Serializable {
     public void setState(FlightState state) {
         this.state = state;
     }
+
 
     public void findSeat(Ticket ticket) {
         plane.findSeat(ticket);
