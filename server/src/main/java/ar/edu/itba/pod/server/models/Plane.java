@@ -154,7 +154,7 @@ public class Plane implements Serializable {
         throw new IllegalStateException("No seats available for category " + ticket.getCategory());
     }
 
-    public void removeTicket(Ticket ticket) {
+    public void removeTicket(Ticket ticket) { // FIXME: eficiente
         String passenger = ticket.getPassenger();
         for (Row row : rows) {
             if (row.passengerHasSeat(passenger)) {
