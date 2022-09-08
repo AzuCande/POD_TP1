@@ -11,6 +11,7 @@ import java.rmi.RemoteException;
 import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -35,46 +36,24 @@ public class SeatManagerServiceImpl implements SeatManagerService {
 
     @Override
     public void assign(String flightCode, String passenger, int row, char seat) throws RemoteException {
-        //TODO: chequear
+        // TODO: chequear
         Flight flight = getValidatedFlight(flightCode, passenger, row, seat);
         Ticket ticket = getTicket(flight, passenger);
-//        RowCategory category = flight.getPlane().getRows()[row].getRowCategory();
-//
-//        Ticket ticket = new Ticket(category, passenger, flight.getDestination());
 
         synchronized (flight) {
             flight.getPlane().assignSeat(row, seat, ticket);
         }
 
-        Map<String, List<NotificationHandler>> flightNotifications;
-
-        store.getNotificationsLock().lock();
-        flightNotifications = store.getNotifications().get(flightCode);
-        store.getNotificationsLock().unlock();
-
-        if (flightNotifications == null)
-            return;
-
-        List<NotificationHandler> handlers;
-        synchronized (flightNotifications) {
-            handlers = flightNotifications.get(passenger);
-        }
-
-        if (handlers == null)
-            return;
-
-        synchronized (handlers) {
-            for (NotificationHandler handler : handlers) {
-                try {
-                    Ticket t = flight.getTickets().stream().filter(tic -> tic.getPassenger()
-                            .equals(passenger)).findFirst().orElseThrow(IllegalArgumentException::new);
-                    handler.notifyAssignSeat(flightCode, flight.getDestination(), t.getCategory(),
-                            row, seat);
-                } catch (RemoteException e) {
-                    e.printStackTrace();
-                }
+        syncNotify(flightCode, passenger, handler -> {
+            try {
+                Ticket t = flight.getTickets().stream().filter(tic -> tic.getPassenger()
+                        .equals(passenger)).findFirst().orElseThrow(IllegalArgumentException::new);
+                handler.notifyAssignSeat(flightCode, flight.getDestination(), t.getCategory(),
+                        row, seat);
+            } catch (RemoteException e) {
+                e.printStackTrace();
             }
-        }
+        });
     }
 
     @Override
@@ -85,23 +64,17 @@ public class SeatManagerServiceImpl implements SeatManagerService {
             flight.changeSeat(freeRow, freeSeat, passenger); // TODO: check
         }
 
-
-
-
-        store.getNotifications().getOrDefault(flightCode, new HashMap<>())
-                .getOrDefault(passenger, new ArrayList<>())
-                .forEach(handler -> {
-                    try {
-                        Ticket ticket = flight.getTickets().stream().filter(t -> t.getPassenger()
-                                .equals(passenger)).findFirst().orElseThrow(IllegalArgumentException::new);
-                        handler.notifyChangeSeat(flightCode, flight.getDestination(),
-                                ticket.getCategory(), ticket.getRow(), ticket.getCol(), RowCategory.ECONOMY,
-                                freeRow, freeSeat);
-
-                    } catch (RemoteException e) {
-                        e.printStackTrace();
-                    }
-                });
+        syncNotify(flightCode, passenger, handler -> {
+            try {
+                Ticket ticket = flight.getTickets().stream().filter(t -> t.getPassenger()
+                        .equals(passenger)).findFirst().orElseThrow(IllegalArgumentException::new);
+                handler.notifyChangeSeat(flightCode, flight.getDestination(),
+                        ticket.getCategory(), ticket.getRow(), ticket.getCol(), RowCategory.ECONOMY,
+                        freeRow, freeSeat);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     private Flight getValidatedFlight(String flightCode, String passenger, int row, char seat) {
@@ -173,28 +146,22 @@ public class SeatManagerServiceImpl implements SeatManagerService {
                 .sorted(Comparator.comparing(Flight::getCode))
                 .toArray(Flight[]::new);
 
+        Ticket ticket;
         synchronized (locks[0]) {
             synchronized (locks[1]) {
-                Ticket ticket = getTicket(oldFlight, passenger);
+                ticket = getTicket(oldFlight, passenger);
                 oldFlight.getTickets().remove(ticket);
                 newFlight.getTickets().add(ticket);
             }
         }
-        // TODO: fix like above
-        store.getNotifications().getOrDefault(oldFlightCode, new HashMap<>())
-                .getOrDefault(passenger, new ArrayList<>())
-                .forEach(handler -> {
-                    try {
-                        /*
-                        Ticket ticket = flight.getTickets().stream().filter(t -> t.getPassenger()
-                                .equals(passenger)).findFirst().orElseThrow(IllegalArgumentException::new);
-                        handler.notifyChangeSeat(flightCode, flight.getDestination(), ticket.getCategory(), freeRow, freeSeat); // TODO: es el viejo
-                         */
-                        throw new RemoteException();
-                    } catch (RemoteException e) {
-                        e.printStackTrace();
-                    }
-                });
+
+        syncNotify(oldFlightCode, passenger, handler -> {
+            try {
+                handler.notifyChangeTicket(oldFlightCode, oldFlight.getDestination(), newFlightCode);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        });
 
     }
 
@@ -212,6 +179,31 @@ public class SeatManagerServiceImpl implements SeatManagerService {
         synchronized (flight) {
             return flight.getTickets().stream().filter(t -> t.getPassenger().equals(passenger))
                     .findFirst().orElseThrow(RuntimeException::new);
+        }
+    }
+
+    private void syncNotify(String flightCode, String passenger, Consumer<NotificationHandler> handlerConsumer) {
+        Map<String, List<NotificationHandler>> flightNotifications;
+
+        store.getNotificationsLock().lock();
+        flightNotifications = store.getNotifications().get(flightCode);
+        store.getNotificationsLock().unlock();
+
+        if (flightNotifications == null)
+            return;
+
+        List<NotificationHandler> handlers;
+        synchronized (flightNotifications) {
+            handlers = flightNotifications.get(passenger);
+        }
+
+        if (handlers == null)
+            return;
+
+        synchronized (handlers) {
+            for (NotificationHandler handler : handlers) {
+                handlerConsumer.accept(handler);
+            }
         }
     }
 }
