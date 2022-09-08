@@ -71,7 +71,9 @@ public class SeatManagerServiceImpl implements SeatManagerService {
                     try {
                         Ticket ticket = flight.getTickets().stream().filter(t -> t.getPassenger()
                                 .equals(passenger)).findFirst().orElseThrow(IllegalArgumentException::new);
-                        handler.notifyChangeSeat(flightCode, flight.getDestination(), ticket.getCategory(), freeRow, freeSeat); // TODO: es el viejo
+                        handler.notifyChangeSeat(flightCode, flight.getDestination(),
+                                ticket.getCategory(), 1, 'A', RowCategory.ECONOMY,
+                                freeRow, freeSeat); // TODO: es el viejo
 
                     } catch (RemoteException e) {
                         e.printStackTrace();

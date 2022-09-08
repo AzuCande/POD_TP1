@@ -121,6 +121,7 @@ public class FlightManagerServiceImpl implements FlightManagerService {
         Flight flight = Optional.ofNullable(store.getFlights().get(flightCode))
                 .filter(f -> f.getState().equals(FlightState.PENDING)).orElseThrow(IllegalArgumentException::new); // TODO: custom exception
 
+        flight.setState(state);
         store.getFlightsLock().unlock();
 
         // TODO: lockear las notificaciones
@@ -135,11 +136,19 @@ public class FlightManagerServiceImpl implements FlightManagerService {
                 for (NotificationHandler handler : handlers) {
                     store.submitNotificationTask(() -> {
                         try {
-                            handler.notifyFlightStateChange(flightCode, flight.getDestination(), state, ticket.getCategory(), 1, 'A');
+                            switch (flight.getState()) {
+                                case CONFIRMED:
+                                    handler.notifyConfirmFlight(flightCode, flight.getDestination(),
+                                            state, ticket.getCategory(), 1, 'A');
+                                    break;
+                                case CANCELED:
+                                    handler.notifyCancelFlight(flightCode, flight.getDestination(),
+                                            state, ticket.getCategory(), 1, 'A');
+                                    break;
+                            }
                         } catch (RemoteException e) {
                             throw new RuntimeException(e);
                         }
-
                     });
                 }
             } catch (Exception e) {
@@ -197,7 +206,7 @@ public class FlightManagerServiceImpl implements FlightManagerService {
                             try {
                                 // TODO
                                 handler.notifyChangeTicket(cancelled.getCode(),
-                                        cancelled.getDestination(), ticket.getCategory(), 1, 'A');
+                                        cancelled.getDestination(), newFlight.getCode());
                             } catch (RemoteException e) {
                                 throw new RuntimeException(e);
                             }

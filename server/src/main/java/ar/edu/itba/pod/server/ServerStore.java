@@ -58,7 +58,7 @@ public class ServerStore {
             try {
                 // TODO: buscar ticket con asientos
                 handler.notifyRegister(flightCode, flights.get(flightCode).getDestination(),
-                        null, -1, -1);
+                        null, -1, 'Z'); // TODO como indicamos que no hay?
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
