@@ -120,9 +120,10 @@ public class FlightManagerServiceImpl implements FlightManagerService {
         store.getFlightsLock().lock();
         Flight flight = Optional.ofNullable(store.getFlights().get(flightCode))
                 .filter(f -> f.getState().equals(FlightState.PENDING)).orElseThrow(IllegalArgumentException::new); // TODO: custom exception
-        
+
         store.getFlightsLock().unlock();
-        
+
+        // TODO: lockear las notificaciones
         store.getNotifications().getOrDefault(flightCode, new HashMap<>()).forEach((passenger, handlers) -> {
             try {
                 Ticket ticket = flight.getTickets().stream()
@@ -132,9 +133,16 @@ public class FlightManagerServiceImpl implements FlightManagerService {
 //
 //                row.
                 for (NotificationHandler handler : handlers) {
-                    handler.notifyFlightStateChange(flightCode, flight.getDestination(), state, ticket.getCategory(), 1, 'A');
+                    store.submitNotificationTask(() -> {
+                        try {
+                            handler.notifyFlightStateChange(flightCode, flight.getDestination(), state, ticket.getCategory(), 1, 'A');
+                        } catch (RemoteException e) {
+                            throw new RuntimeException(e);
+                        }
+
+                    });
                 }
-            } catch (RemoteException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         });
@@ -177,11 +185,27 @@ public class FlightManagerServiceImpl implements FlightManagerService {
                 Flight newFlight = alternativeFlights.get(0);
 
                 // Transfer ticket from cancelled to newFlight
-                //cancelled.removeTicket(ticket); // TODO: esto es legal mientras itero? no
+                //cancelled.removeTicket(ticket); // TODO: esto es legal mientras itero? no.
+                // TODO: estas llamando a un metodo, no veo por qué no sería legal
                 toRemove.add(ticket);
                 newFlight.findSeat(ticket);
+
+                // TODO chequeos de que se pudo hacer
+                store.getNotifications().getOrDefault(cancelled.getCode(), new HashMap<>())
+                        .getOrDefault(ticket.getPassenger(), new ArrayList<>())
+                        .forEach(handler -> store.submitNotificationTask(() -> {
+                            try {
+                                // TODO
+                                handler.notifyChangeTicket(cancelled.getCode(),
+                                        cancelled.getDestination(), ticket.getCategory(), 1, 'A');
+                            } catch (RemoteException e) {
+                                throw new RuntimeException(e);
+                            }
+
+                        }));
+
             }
-            for(Ticket remove : toRemove){
+            for (Ticket remove : toRemove) {
                 cancelled.removeTicket(remove);
             }
             toRemove.clear();
@@ -189,7 +213,7 @@ public class FlightManagerServiceImpl implements FlightManagerService {
     }
 
     private int getAvailableSeats(Flight flight, RowCategory category) {
-        int[] availableSeats = flight.getPlane().getAvailableSeats();
+        int[] availableSeats = flight.getPlane().getAvailableSeats(); // TODO: lockear los asientos
         for (int i = category.ordinal(); i >= 0; i--) {
             if (availableSeats[i] > 0)
                 return i;

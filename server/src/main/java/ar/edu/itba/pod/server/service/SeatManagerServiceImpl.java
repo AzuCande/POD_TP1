@@ -26,7 +26,7 @@ public class SeatManagerServiceImpl implements SeatManagerService {
     @Override
     public boolean isAvailable(String flightCode, int row, char seat) throws RemoteException {
         validateFlightCode(flightCode);
-        seatLock.lock();
+        seatLock.lock(); // FIXME: el seat debería lockear
         boolean isAvailable = store.getFlights().get(flightCode).getPlane().checkSeat(row, seat);
         seatLock.unlock();
         return isAvailable;
@@ -130,18 +130,17 @@ public class SeatManagerServiceImpl implements SeatManagerService {
 
     private void validateFlightCode(String flightCode) {
         store.getFlightsLock().lock();
-        if (!store.getFlights().containsKey(flightCode)) {
-            store.getFlightsLock().unlock();
-            throw new NoSuchElementException("Flight does not exists");
-        }
-        store.getFlightsLock().unlock();
 
+        try {
+            if (!store.getFlights().containsKey(flightCode))
+                throw new NoSuchElementException("Flight does not exists");
+        } finally {
+            store.getFlightsLock().unlock();
+        }
     }
 
     private Ticket getTicket(Flight flight, String passenger) {
         return flight.getTickets().stream().filter(t -> t.getPassenger().equals(passenger))
                 .findFirst().orElseThrow(RuntimeException::new);
     }
-
-
 }

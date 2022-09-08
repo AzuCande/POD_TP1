@@ -1,12 +1,12 @@
 package ar.edu.itba.pod.models;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class FlightResponse {
-
+public class FlightResponse implements Serializable {
     private String flightCode;
     private String destination;
     private Map<RowCategory, Integer> availableSeats;

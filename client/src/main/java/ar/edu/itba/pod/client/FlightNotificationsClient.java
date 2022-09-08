@@ -26,8 +26,8 @@ public class FlightNotificationsClient {
         NotificationService notificationService =
                 (NotificationService) Naming.lookup("//127.0.0.1:1099/" + NotificationService.class.getName());
 
-        notificationService.registerPassenger(parser.getFlight(), parser.getPassenger(),
-                () -> System.out.println("Notified!"));
+        //notificationService.registerPassenger(parser.getFlight(), parser.getPassenger(),
+        //        () -> System.out.println("Notified!"));
 
         // TODO: implement notifications callback
     }
