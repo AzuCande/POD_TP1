@@ -1,5 +1,6 @@
 package ar.edu.itba.pod.server.service;
 
+import ar.edu.itba.pod.callbacks.NotificationHandler;
 import ar.edu.itba.pod.models.*;
 import ar.edu.itba.pod.interfaces.FlightManagerService;
 import ar.edu.itba.pod.server.ServerStore;
@@ -18,7 +19,6 @@ public class FlightManagerServiceImpl implements FlightManagerService {
     private final ServerStore store;
 
     final Lock modelsLock = new ReentrantLock();
-
 
     public FlightManagerServiceImpl(ServerStore store) {
         this.store = store;
@@ -118,10 +118,26 @@ public class FlightManagerServiceImpl implements FlightManagerService {
 
     private void changeFlightState(String flightCode, FlightState state) {
         store.getFlightsLock().lock();
-        Flight flight = store.getFlights().getOrDefault(flightCode, null);
-        if (flight != null)
-            flight.setState(state);
+        Flight flight = Optional.ofNullable(store.getFlights().get(flightCode))
+                .filter(f -> f.getState().equals(FlightState.PENDING)).orElseThrow(IllegalArgumentException::new); // TODO: custom exception
+        
         store.getFlightsLock().unlock();
+        
+        store.getNotifications().getOrDefault(flightCode, new HashMap<>()).forEach((passenger, handlers) -> {
+            try {
+                Ticket ticket = flight.getTickets().stream()
+                        .filter(t -> t.getPassenger().equals(passenger)).findFirst().orElseThrow(IllegalArgumentException::new);
+
+//                Row row = Arrays.stream(flight.getPlane().getRows()).filter(r -> r.passengerHasSeat(passenger)).findFirst().orElseThrow(IllegalArgumentException::new);
+//
+//                row.
+                for (NotificationHandler handler : handlers) {
+                    handler.notifyFlightStateChange(flightCode, flight.getDestination(), state, ticket.getCategory(), 1, 'A');
+                }
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     @Override

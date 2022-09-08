@@ -7,7 +7,6 @@ import java.rmi.RemoteException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public interface FlightManagerService extends Remote {
     void addPlaneModel(String model, Map<String, int[]> seatCategories) throws RemoteException;

@@ -1,7 +1,9 @@
 package ar.edu.itba.pod.server.service;
 
+import ar.edu.itba.pod.callbacks.NotificationHandler;
 import ar.edu.itba.pod.interfaces.SeatManagerService;
 import ar.edu.itba.pod.models.*;
+import ar.edu.itba.pod.models.FlightResponse;
 import ar.edu.itba.pod.server.ServerStore;
 
 import java.rmi.RemoteException;
@@ -9,6 +11,7 @@ import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
+
 
 public class SeatManagerServiceImpl implements SeatManagerService {
 
@@ -38,6 +41,17 @@ public class SeatManagerServiceImpl implements SeatManagerService {
         seatLock.lock();
         flight.getPlane().assignSeat(row, seat, ticket);
         seatLock.unlock();
+
+        store.getNotifications().getOrDefault(flightCode, new HashMap<>()).forEach((p, handlers) -> {
+            try {
+                Ticket t = flight.getTickets().stream().filter(tic -> tic.getPassenger().equals(p)).findFirst().orElseThrow(IllegalArgumentException::new);
+                for (NotificationHandler handler : handlers) {
+                    handler.notifyAssignSeat(flightCode, flight.getDestination(), t.getCategory(), row, seat);
+                }
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     @Override
@@ -46,6 +60,18 @@ public class SeatManagerServiceImpl implements SeatManagerService {
         seatLock.lock();
         flight.changeSeat(freeRow, freeSeat, passenger);
         seatLock.unlock();
+
+
+        store.getNotifications().getOrDefault(flightCode, new HashMap<>()).forEach((p, handlers) -> {
+            try {
+                for (NotificationHandler handler : handlers) {
+                    Ticket ticket = flight.getTickets().stream().filter(t -> t.getPassenger().equals(p)).findFirst().orElseThrow(IllegalArgumentException::new);
+                    handler.notifyChangeSeat(flightCode, flight.getDestination(), ticket.getCategory(), freeRow, freeSeat); // TODO: es el viejo
+                }
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     private Flight getValidatedFlight(String flightCode, String passenger, int row, char seat) {
@@ -59,7 +85,7 @@ public class SeatManagerServiceImpl implements SeatManagerService {
     }
 
     @Override
-    public List<Flight> listAlternativeFlights(String flightCode, String passenger) throws RemoteException { //TODO : return string ?
+    public List<FlightResponse> listAlternativeFlights(String flightCode, String passenger) throws RemoteException { //TODO : return string ?
         validateFlightCode(flightCode);
 
         //TODO: listAlternativeFlights
@@ -78,9 +104,10 @@ public class SeatManagerServiceImpl implements SeatManagerService {
                 .collect(Collectors.toList());
 //        alternativeFlights = alternativeFlights.stream().filter();
 
-//        List<FlightResponse> toRet = compact(alternativeFlights);
+        List<FlightResponse> toRet = FlightResponse.compactFlights(alternativeFlights);
 
-        return alternativeFlights;
+//        return alternativeFlights;
+        return toRet;
 
 //        StringBuilder stringBuilder = new StringBuilder();
 //        for (Flight f : alternativeFlights) {
