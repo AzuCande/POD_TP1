@@ -19,6 +19,7 @@ public class SeatManagerServiceImpl implements SeatManagerService {
 
     private final Lock seatLock = new ReentrantLock();
 
+
     public SeatManagerServiceImpl(ServerStore store) {
         this.store = store;
     }
@@ -42,16 +43,18 @@ public class SeatManagerServiceImpl implements SeatManagerService {
         flight.getPlane().assignSeat(row, seat, ticket);
         seatLock.unlock();
 
-        store.getNotifications().getOrDefault(flightCode, new HashMap<>()).forEach((p, handlers) -> {
-            try {
-                Ticket t = flight.getTickets().stream().filter(tic -> tic.getPassenger().equals(p)).findFirst().orElseThrow(IllegalArgumentException::new);
-                for (NotificationHandler handler : handlers) {
-                    handler.notifyAssignSeat(flightCode, flight.getDestination(), t.getCategory(), row, seat);
-                }
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-        });
+        store.getNotifications().getOrDefault(flightCode, new HashMap<>())
+                .getOrDefault(passenger, new ArrayList<>())
+                .forEach(handler -> {
+                    try {
+                        Ticket t = flight.getTickets().stream().filter(tic -> tic.getPassenger()
+                                .equals(passenger)).findFirst().orElseThrow(IllegalArgumentException::new);
+                        handler.notifyAssignSeat(flightCode, flight.getDestination(), t.getCategory(),
+                                row, seat);
+                    } catch (RemoteException e) {
+                        e.printStackTrace();
+                    }
+                });
     }
 
     @Override
@@ -62,16 +65,18 @@ public class SeatManagerServiceImpl implements SeatManagerService {
         seatLock.unlock();
 
 
-        store.getNotifications().getOrDefault(flightCode, new HashMap<>()).forEach((p, handlers) -> {
-            try {
-                for (NotificationHandler handler : handlers) {
-                    Ticket ticket = flight.getTickets().stream().filter(t -> t.getPassenger().equals(p)).findFirst().orElseThrow(IllegalArgumentException::new);
-                    handler.notifyChangeSeat(flightCode, flight.getDestination(), ticket.getCategory(), freeRow, freeSeat); // TODO: es el viejo
-                }
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-        });
+        store.getNotifications().getOrDefault(flightCode, new HashMap<>())
+                .getOrDefault(passenger, new ArrayList<>())
+                .forEach(handler -> {
+                    try {
+                        Ticket ticket = flight.getTickets().stream().filter(t -> t.getPassenger()
+                                .equals(passenger)).findFirst().orElseThrow(IllegalArgumentException::new);
+                        handler.notifyChangeSeat(flightCode, flight.getDestination(), ticket.getCategory(), freeRow, freeSeat); // TODO: es el viejo
+
+                    } catch (RemoteException e) {
+                        e.printStackTrace();
+                    }
+                });
     }
 
     private Flight getValidatedFlight(String flightCode, String passenger, int row, char seat) {
@@ -126,6 +131,22 @@ public class SeatManagerServiceImpl implements SeatManagerService {
 
     @Override
     public void changeFlight(String passenger, String oldFlightCode, String newFlightCode) throws RemoteException {
+        // TODO: do it
+        store.getNotifications().getOrDefault(oldFlightCode, new HashMap<>())
+                .getOrDefault(passenger, new ArrayList<>())
+                .forEach(handler -> {
+                    try {
+                        /*
+                        Ticket ticket = flight.getTickets().stream().filter(t -> t.getPassenger()
+                                .equals(passenger)).findFirst().orElseThrow(IllegalArgumentException::new);
+                        handler.notifyChangeSeat(flightCode, flight.getDestination(), ticket.getCategory(), freeRow, freeSeat); // TODO: es el viejo
+                         */
+                        throw new RemoteException();
+                    } catch (RemoteException e) {
+                        e.printStackTrace();
+                    }
+                });
+
     }
 
     private void validateFlightCode(String flightCode) {
