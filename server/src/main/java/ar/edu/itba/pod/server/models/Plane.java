@@ -138,7 +138,13 @@ public class Plane implements Serializable {
 
     private void seatPassenger(int rowNumber, char seat, Ticket ticket) {
         Row row = rows[rowNumber];
-        row.assignSeat(seat, ticket.getPassenger()); //tira exception si estás pisando a alguien en un asiento
+            row.assignSeat(seat, ticket.getPassenger()); //tira exception si estás pisando a alguien en un asiento
+        
+        synchronized (ticket) {
+            ticket.setSeat(rowNumber, seat);
+        }
+
+        // TODO: sync
         availableSeats[row.getRowCategory().ordinal()]--;
     }
 

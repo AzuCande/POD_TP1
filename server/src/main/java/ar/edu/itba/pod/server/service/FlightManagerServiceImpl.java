@@ -67,32 +67,6 @@ public class FlightManagerServiceImpl implements FlightManagerService {
         }
     }
 
-    public Collection<PlaneModel> getPlaneModels() {
-        // TODO: que onda la lectura?
-        return new ArrayList<>(store.getPlaneModels().values());
-    }
-
-    public Collection<FlightResponse> getFlights() {
-        // TODO: que onda la lectura?
-//        return new ArrayList<>(store.getFlights().values());
-        return null;
-    }
-
-    public boolean hasPlaneModel(String PlaneModel) throws RemoteException { //TODO: check if string is in set
-//        modelsLock.lock();
-        boolean hasPlane = store.getPlaneModels().containsKey(PlaneModel);
-//        modelsLock.unlock();
-        return hasPlane;
-
-    }
-
-    public boolean hasFlightCode(String flightCode) throws RemoteException { //TODO: check if string is in set
-        store.getFlightsLock().lock();
-        boolean hasFlightCode = store.getFlights().containsKey(flightCode);
-        store.getFlightsLock().unlock();
-        return hasFlightCode;
-    }
-
     @Override
     public FlightState getFlightState(String flightCode) throws RemoteException {
         FlightState flightState;
