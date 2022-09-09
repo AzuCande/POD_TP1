@@ -4,13 +4,13 @@ import ar.edu.itba.pod.callbacks.NotificationHandler;
 import ar.edu.itba.pod.interfaces.SeatManagerService;
 import ar.edu.itba.pod.models.*;
 import ar.edu.itba.pod.models.FlightResponse;
+import ar.edu.itba.pod.models.exceptions.notFoundExceptions.TicketNotFoundException;
+import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundException;
 import ar.edu.itba.pod.server.ServerStore;
 import ar.edu.itba.pod.server.models.Flight;
 
 import java.rmi.RemoteException;
 import java.util.*;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -47,7 +47,7 @@ public class SeatManagerServiceImpl implements SeatManagerService {
         syncNotify(flightCode, passenger, handler -> {
             try {
                 Ticket t = flight.getTickets().stream().filter(tic -> tic.getPassenger()
-                        .equals(passenger)).findFirst().orElseThrow(IllegalArgumentException::new);
+                        .equals(passenger)).findFirst().orElseThrow(FlightNotFoundException::new);
                 handler.notifyAssignSeat(flightCode, flight.getDestination(), t.getCategory(),
                         row, seat);
             } catch (RemoteException e) {
@@ -67,7 +67,7 @@ public class SeatManagerServiceImpl implements SeatManagerService {
         syncNotify(flightCode, passenger, handler -> {
             try {
                 Ticket ticket = flight.getTickets().stream().filter(t -> t.getPassenger()
-                        .equals(passenger)).findFirst().orElseThrow(IllegalArgumentException::new);
+                        .equals(passenger)).findFirst().orElseThrow(TicketNotFoundException::new);
                 handler.notifyChangeSeat(flightCode, flight.getDestination(),
                         ticket.getCategory(), ticket.getRow(), ticket.getCol(), RowCategory.ECONOMY,
                         freeRow, freeSeat);
@@ -135,9 +135,9 @@ public class SeatManagerServiceImpl implements SeatManagerService {
         store.getFlightsLock().lock();
         try {
             oldFlight = Optional.ofNullable(store.getFlights().get(oldFlightCode))
-                    .orElseThrow(IllegalArgumentException::new);
+                    .orElseThrow(FlightNotFoundException::new);
             newFlight = Optional.ofNullable(store.getFlights().get(newFlightCode))
-                    .orElseThrow(IllegalAccessError::new);
+                    .orElseThrow(FlightNotFoundException::new);
         } finally {
             store.getFlightsLock().unlock();
         }
@@ -169,7 +169,7 @@ public class SeatManagerServiceImpl implements SeatManagerService {
         store.getFlightsLock().lock();
         try {
             return Optional.ofNullable(store.getFlights().get(flightCode))
-                    .orElseThrow(() -> new IllegalArgumentException("Flight code not found")); // TODO: nuestra excepcion
+                    .orElseThrow(FlightNotFoundException::new); // TODO: nuestra excepcion
         } finally {
             store.getFlightsLock().unlock();
         }
@@ -178,7 +178,7 @@ public class SeatManagerServiceImpl implements SeatManagerService {
     private Ticket getTicket(Flight flight, String passenger) {
         synchronized (flight) {
             return flight.getTickets().stream().filter(t -> t.getPassenger().equals(passenger))
-                    .findFirst().orElseThrow(RuntimeException::new);
+                    .findFirst().orElseThrow(TicketNotFoundException::new);
         }
     }
 

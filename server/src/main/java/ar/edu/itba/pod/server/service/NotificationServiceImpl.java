@@ -4,6 +4,8 @@ import ar.edu.itba.pod.callbacks.NotificationHandler;
 import ar.edu.itba.pod.interfaces.NotificationService;
 import ar.edu.itba.pod.server.models.Flight;
 import ar.edu.itba.pod.models.FlightState;
+import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundException;
+import ar.edu.itba.pod.models.exceptions.notFoundExceptions.PassengerNotFoundException;
 import ar.edu.itba.pod.server.ServerStore;
 
 import java.rmi.RemoteException;
@@ -25,10 +27,10 @@ public class NotificationServiceImpl implements NotificationService {
         try {
             Flight flight = Optional.ofNullable(store.getFlights().get(flightCode))
                     .filter(f -> !f.getState().equals(FlightState.CONFIRMED))
-                    .orElseThrow(IllegalArgumentException::new); // TODO: custom exception
+                    .orElseThrow(FlightNotFoundException::new); // TODO: custom exception
 
             flight.getTickets().stream().filter(t -> t.getPassenger().equals(passenger))
-                    .findFirst().orElseThrow(IllegalArgumentException::new); // TODO: custom exception
+                    .findFirst().orElseThrow(PassengerNotFoundException::new); // TODO: custom exception
         } finally {
             store.getFlightsLock().unlock();
         }

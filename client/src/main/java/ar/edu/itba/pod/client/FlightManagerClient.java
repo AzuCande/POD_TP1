@@ -111,14 +111,15 @@ public class FlightManagerClient {
                 String flightCode = nextLine[1];
                 String destination = nextLine[2];
                 String[] passengers = nextLine[3].split(",");
-                if(!flightManager.hasPlaneModel(planeModel)) {
-                    logger.error("Plane model: {} does not exist, line {} ignored", planeModel, lineNumber++);
-                    continue;
-                }
-                if(flightManager.hasFlightCode(flightCode)) {
-                    logger.error("Flight code: {} duplicated, line {} ignored", planeModel, lineNumber++);
-                    continue;
-                }
+                //TODO: ver que hacemos con esto. Porque estos metodos estaban en la interfaz y no en el enunciado
+//                if(!flightManager.hasPlaneModel(planeModel)) {
+//                    logger.error("Plane model: {} does not exist, line {} ignored", planeModel, lineNumber++);
+//                    continue;
+//                }
+//                if(flightManager.hasFlightCode(flightCode)) {
+//                    logger.error("Flight code: {} duplicated, line {} ignored", planeModel, lineNumber++);
+//                    continue;
+//                }
                 for (String passenger : passengers) {
                     String[] parts = passenger.split("#");
                     RowCategory seatCategory = RowCategory.valueOf(parts[0]);

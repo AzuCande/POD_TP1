@@ -1,6 +1,9 @@
 package ar.edu.itba.pod.server.models;
 
 import ar.edu.itba.pod.models.RowCategory;
+import ar.edu.itba.pod.models.exceptions.seatExceptions.InvalidSeatException;
+import ar.edu.itba.pod.models.exceptions.seatExceptions.NoAvailableSeatsException;
+import ar.edu.itba.pod.models.exceptions.seatExceptions.SeatAlreadyTakenException;
 
 
 public class Row { // TODO se usa en una interfaz remota?
@@ -35,7 +38,7 @@ public class Row { // TODO se usa en una interfaz remota?
             }
         }
 
-        throw new IllegalStateException("No available seats");
+        throw new NoAvailableSeatsException();
     }
 
     public boolean passengerHasSeat(String passengerName) {
@@ -65,14 +68,14 @@ public class Row { // TODO se usa en una interfaz remota?
 
     private void checkValidSeat(char seat) {
         if (seat < 'A' || seat >= 'A' + passengerNames.length) {
-            throw new IllegalArgumentException("Seat " + seat + " does not exist");
+            throw new InvalidSeatException(seat);
         }
     }
     
     private void checkSeatAvailable(char seat) {
         checkValidSeat(seat);
         if (!isAvailable(seat)) {
-            throw new IllegalStateException("Seat already taken");
+            throw new SeatAlreadyTakenException(seat);
         }
     }
 

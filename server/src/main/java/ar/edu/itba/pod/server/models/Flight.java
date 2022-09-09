@@ -3,6 +3,7 @@ package ar.edu.itba.pod.server.models;
 import ar.edu.itba.pod.models.FlightState;
 import ar.edu.itba.pod.models.RowCategory;
 import ar.edu.itba.pod.models.Ticket;
+import ar.edu.itba.pod.models.exceptions.notFoundExceptions.TicketNotFoundException;
 
 import java.util.List;
 
@@ -57,7 +58,7 @@ public class Flight {
 
     public void changeSeat(int freeRow, char freeSeat, String passenger) {
         Ticket ticket = tickets.stream().filter(t -> t.getPassenger().equals(passenger)).findFirst()
-                .orElseThrow(IllegalArgumentException::new);
+                .orElseThrow(TicketNotFoundException::new);
 
         plane.changeSeat(freeRow, freeSeat, ticket);
 

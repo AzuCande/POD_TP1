@@ -4,6 +4,12 @@ import ar.edu.itba.pod.models.FlightState;
 import ar.edu.itba.pod.models.PlaneModel;
 import ar.edu.itba.pod.models.RowCategory;
 import ar.edu.itba.pod.models.Ticket;
+import ar.edu.itba.pod.models.exceptions.IllegalPassengerCategoryException;
+import ar.edu.itba.pod.models.exceptions.IllegalRowException;
+import ar.edu.itba.pod.models.exceptions.PassengerAlreadySeatedException;
+import ar.edu.itba.pod.models.exceptions.PassengerNotSeatedException;
+import ar.edu.itba.pod.models.exceptions.planeExceptions.IllegalPlaneException;
+import ar.edu.itba.pod.models.exceptions.planeExceptions.IllegalPlaneStateException;
 
 import java.io.Serializable;
 import java.util.concurrent.locks.Lock;
@@ -26,7 +32,7 @@ public class Plane implements Serializable {
 
         int totRows = business[0] + premium[0] + economy[0];
         if (!validParams(business, premium, economy)) {
-            throw new IllegalArgumentException(""); //TODO: crear nuestras excepciones
+            throw new IllegalPlaneException(); //TODO: crear nuestras excepciones
         }
 
         this.rows = new Row[totRows];
@@ -52,16 +58,16 @@ public class Plane implements Serializable {
         checkValidRow(rowNumber);
 
         if (state != FlightState.PENDING) {
-            throw new IllegalStateException("Plane is not in pending state");
+            throw new IllegalPlaneStateException();
         }
 
         if (rows[rowNumber].getRowCategory().ordinal() < ticket.getCategory().ordinal()) {
-            throw new IllegalArgumentException("Passenger category is not permited");
+            throw new IllegalPassengerCategoryException();
         }
 
         for (Row row : rows) {
             if (row.passengerHasSeat(ticket.getPassenger())) {
-                throw new IllegalStateException("Passenger already has a seat");
+                throw new PassengerAlreadySeatedException();
             }
         }
 
@@ -71,13 +77,13 @@ public class Plane implements Serializable {
     public void changeSeat(int newRow, char newSeat, Ticket ticket) { // TODO: concurrencia
         checkValidRow(newRow);
         if (state != FlightState.PENDING) {
-            throw new IllegalStateException("Plane is not in pending state");
+            throw new IllegalPlaneStateException();
         }
 
         for (Row row : rows) {
             if (row.passengerHasSeat(ticket.getPassenger())) {
                 if (row.getRowCategory().ordinal() < ticket.getCategory().ordinal())
-                    throw new IllegalArgumentException("Passenger category is not permited");
+                    throw new IllegalPassengerCategoryException();
 
                 row.removePassenger(ticket.getPassenger());
                 availableSeats[row.getRowCategory().ordinal()]++;
@@ -86,13 +92,13 @@ public class Plane implements Serializable {
             }
         }
 
-        throw new IllegalStateException("Passenger does not have a seat");
+        throw new PassengerNotSeatedException();
     }
 
     public boolean checkSeat(int row, char seat) {
         checkValidRow(row);
         if (state != FlightState.PENDING) {
-            throw new IllegalStateException("Plane is not in pending state");
+            throw new IllegalPlaneStateException();
         }
         return rows[row].isAvailable(seat);
     }
@@ -118,7 +124,7 @@ public class Plane implements Serializable {
 
     private void checkValidRow(int row) {
         if (row < 0 || row >= rows.length) {
-            throw new IllegalArgumentException("Row " + row + " does not exist");
+            throw new IllegalRowException(row);
         }
     }
 

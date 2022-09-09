@@ -2,6 +2,9 @@ package ar.edu.itba.pod.server.service;
 
 import ar.edu.itba.pod.callbacks.NotificationHandler;
 import ar.edu.itba.pod.models.*;
+import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundException;
+import ar.edu.itba.pod.models.exceptions.notFoundExceptions.PlaneNotFoundException;
+import ar.edu.itba.pod.models.exceptions.notFoundExceptions.TicketNotFoundException;
 import ar.edu.itba.pod.interfaces.FlightManagerService;
 import ar.edu.itba.pod.server.ServerStore;
 import ar.edu.itba.pod.server.models.Flight;
@@ -32,7 +35,7 @@ public class FlightManagerServiceImpl implements FlightManagerService {
 
         try {
             if (store.getPlaneModels().containsKey(model))
-                throw new RuntimeException(); // TODO: nuestra excepcion
+                throw new PlaneNotFoundException(); // TODO: nuestra excepcion
 
             store.getPlaneModels().put(model, new PlaneModel(model, seatCategories));
             logger.info("Added model");
@@ -73,7 +76,7 @@ public class FlightManagerServiceImpl implements FlightManagerService {
         store.getFlightsLock().lock();
         try {
             flightState = Optional.of(store.getFlights().get(flightCode))
-                    .orElseThrow(RuntimeException::new).getState(); // TODO nuestra excepcion
+                    .orElseThrow(FlightNotFoundException::new).getState(); // TODO nuestra excepcion
         } finally {
             store.getFlightsLock().unlock();
         }
@@ -97,7 +100,7 @@ public class FlightManagerServiceImpl implements FlightManagerService {
         try {
             flight = Optional.ofNullable(store.getFlights().get(flightCode))
                     .filter(f -> f.getState().equals(FlightState.PENDING))
-                    .orElseThrow(IllegalArgumentException::new); // TODO: custom exception
+                    .orElseThrow(FlightNotFoundException::new); // TODO: custom exception
         } finally {
             store.getFlightsLock().unlock();
         }
@@ -119,7 +122,7 @@ public class FlightManagerServiceImpl implements FlightManagerService {
                 synchronized (handlers) {
                     Ticket ticket = flight.getTickets().stream()
                             .filter(t -> t.getPassenger().equals(passenger)).findFirst()
-                            .orElseThrow(IllegalArgumentException::new); // TODO check
+                            .orElseThrow(TicketNotFoundException::new); // TODO check
 
                     for (NotificationHandler handler : handlers) {
                         store.submitNotificationTask(() -> {
