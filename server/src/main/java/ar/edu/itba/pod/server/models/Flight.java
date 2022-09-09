@@ -229,4 +229,8 @@ public class Flight {
         return tickets.stream().filter(t -> t.getPassenger().equals(passenger))
                 .findFirst().orElseThrow(TicketNotFoundException::new);
     }
+
+    public Row[] getRows() {
+        return rows;
+    }
 }

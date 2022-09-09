@@ -31,20 +31,9 @@ public class SeatQueryParser {
             System.exit(1);
         }
 
-        try {
-            category = Optional.ofNullable(props.getProperty(CATEGORY)).map(RowCategory::valueOf);
-        } catch (IllegalArgumentException e) {
-            System.out.println("Invalid Category");
-            System.exit(1);
-        }
-
-        try {
-            row = Optional.ofNullable(props.getProperty(ROW)).map(Integer::parseInt);
-        } catch (NumberFormatException e) {
-            System.out.println("Invalid row");
-            System.exit(1);
-        }
-
+        
+        category = Optional.ofNullable(props.getProperty(CATEGORY)).map(RowCategory::valueOf);
+        row = Optional.ofNullable(props.getProperty(ROW)).map(Integer::parseInt);
         outPath = props.getProperty(OUT_PATH);
     }
 

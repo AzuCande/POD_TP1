@@ -82,4 +82,8 @@ public class Row { // TODO se usa en una interfaz remota?
     public RowCategory getRowCategory() {
         return rowCategory;
     }
+
+    public String[] getPassengerNames() {
+        return passengerNames;
+    }
 }
