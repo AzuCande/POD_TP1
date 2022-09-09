@@ -5,6 +5,7 @@ public class IllegalRowException extends IllegalArgumentException {
     private int row;
 
     public IllegalRowException(int row) {
+        super();
         this.row = row;
     }
 

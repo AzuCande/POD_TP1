@@ -4,6 +4,7 @@ public class SeatAlreadyTakenException extends RuntimeException {
     private char seat;
 
     public SeatAlreadyTakenException(char seat) {
+        super();
         this.seat = seat;
     }
 

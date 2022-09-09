@@ -37,6 +37,7 @@ public class FlightManagerClient {
         FlightManagerService flightManagerService =
                 (FlightManagerService) Naming.lookup("//127.0.0.1:1099/flightManagerService");
 
+        // TODO: REFACTOR
         switch (parser.getAction().get()) {
             case MODELS:
                 logger.info("Uploading plane models...");
@@ -47,20 +48,39 @@ public class FlightManagerClient {
                 FlightManagerClient.readFlights(parser.getPath(), flightManagerService);
                 break;
             case STATUS:
-                logger.info("Checking flight " + parser.getFlightCode() +" status...");
-                flightManagerService.getFlightState(parser.getFlightCode());
+                logger.info("Checking flight " + parser.getFlightCode() + " status...");
+                try {
+                    System.out.println(flightManagerService.getFlightState(parser.getFlightCode()));
+                } catch (Exception e) {
+                    System.out.println(e.getMessage());
+                }
                 break;
             case CONFIRM:
                 logger.info("Confirming flight " + parser.getFlightCode() + " ...");
-                flightManagerService.confirmFlight(parser.getFlightCode());
+                try {
+                    flightManagerService.confirmFlight(parser.getFlightCode());
+                    System.out.println("Flight confirmed successfully");
+                } catch (Exception e) {
+                    System.out.println(e.getMessage());
+                }
                 break;
             case CANCEL:
                 logger.info("Canceling flight " + parser.getFlightCode() + " ...");
-                flightManagerService.cancelFlight(parser.getFlightCode());
+                try {
+                    flightManagerService.cancelFlight(parser.getFlightCode());
+                    System.out.println("Flight cancelled successfully");
+                } catch (Exception e) {
+                    System.out.println(e.getMessage());
+                }
                 break;
             case RETICKETING:
                 logger.info("Reticketing cancelled flights...");
-                flightManagerService.changeCancelledFlights();
+                try {
+                    flightManagerService.changeCancelledFlights();
+                    System.out.println("Reticketing successful");
+                } catch (Exception e) {
+                    System.out.println(e.getMessage());
+                }
                 break;
         }
 
@@ -83,11 +103,13 @@ public class FlightManagerClient {
                     int rows = Integer.parseInt(parts[1]);
                     int cols = Integer.parseInt(parts[2]);
                     map.put(seatCategory, new int[]{rows, cols});
-                    System.out.println(seatCategory + " " + rows + " " + cols);
                 }
-
-                flightManagerService.addPlaneModel(planeModel, map);
-                System.out.println();
+                try {
+                    flightManagerService.addPlaneModel(planeModel, map);
+                } catch (Exception e) {
+                    System.out.println(e.getMessage());
+                    System.out.println("Ignoring model...");
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -111,23 +133,20 @@ public class FlightManagerClient {
                 String flightCode = nextLine[1];
                 String destination = nextLine[2];
                 String[] passengers = nextLine[3].split(",");
-                //TODO: ver que hacemos con esto. Porque estos metodos estaban en la interfaz y no en el enunciado
-//                if(!flightManager.hasPlaneModel(planeModel)) {
-//                    logger.error("Plane model: {} does not exist, line {} ignored", planeModel, lineNumber++);
-//                    continue;
-//                }
-//                if(flightManager.hasFlightCode(flightCode)) {
-//                    logger.error("Flight code: {} duplicated, line {} ignored", planeModel, lineNumber++);
-//                    continue;
-//                }
+
                 for (String passenger : passengers) {
                     String[] parts = passenger.split("#");
                     RowCategory seatCategory = RowCategory.valueOf(parts[0]);
                     String name = parts[1];
-                    tickets.add(new Ticket(seatCategory,name, destination));
+                    tickets.add(new Ticket(seatCategory, name, destination));
                 }
-                flightManager.addFlight(planeModel, flightCode, destination, tickets);
-                lineNumber++;
+                try {
+                    flightManager.addFlight(planeModel, flightCode, destination, tickets);
+                } catch (Exception e) {
+                    System.out.println(e.getMessage());
+                    System.out.println("Ignoring flight...");
+                }
+                //lineNumber++;
             }
         } catch (IOException e) {
             e.printStackTrace();

@@ -23,7 +23,7 @@ public class SeatQueryClient {
         logger.info("Flight Notifications Client Starting ...");
 
         SeatQueryService service =
-                (SeatQueryService) Naming.lookup("//127.0.0.1:1099/" + SeatQueryService.class.getName());
+                (SeatQueryService) Naming.lookup("//127.0.0.1:1099/" + "seatQueryService");
 
         service.query(parser.getFlight(), "nada");
         // TODO: parametros y escribir respuesta a CSV

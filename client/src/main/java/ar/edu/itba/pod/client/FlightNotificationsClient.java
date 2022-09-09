@@ -35,7 +35,7 @@ public class FlightNotificationsClient {
         registry.rebind("notificationHandler", remote);
 
         NotificationService notificationService =
-                (NotificationService) Naming.lookup("//127.0.0.1:1099/" + NotificationService.class.getName());
+                (NotificationService) Naming.lookup("//127.0.0.1:1099/" + "notificationService");
 
         notificationService.registerPassenger(parser.getFlight(), parser.getPassenger(), notificationHandler);
     }

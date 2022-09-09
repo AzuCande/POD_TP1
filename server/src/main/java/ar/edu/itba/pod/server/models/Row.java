@@ -66,13 +66,13 @@ public class Row { // TODO se usa en una interfaz remota?
         }
     }
 
-    private void checkValidSeat(char seat) {
+    public void checkValidSeat(char seat) {
         if (seat < 'A' || seat >= 'A' + passengerNames.length) {
             throw new InvalidSeatException(seat);
         }
     }
     
-    private void checkSeatAvailable(char seat) {
+    public void checkSeatAvailable(char seat) {
         checkValidSeat(seat);
         if (!isAvailable(seat)) {
             throw new SeatAlreadyTakenException(seat);

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TP_PATH=/Users/srosati/University/POD/rmi-project
+TP_PATH=/Users/patrick/Desktop/ITBA/POD/TP1/POD_TP1
 cd $TP_PATH
 
 mvn install

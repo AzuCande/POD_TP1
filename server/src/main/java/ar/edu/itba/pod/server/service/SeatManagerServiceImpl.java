@@ -6,6 +6,7 @@ import ar.edu.itba.pod.models.*;
 import ar.edu.itba.pod.models.FlightResponse;
 import ar.edu.itba.pod.models.exceptions.notFoundExceptions.TicketNotFoundException;
 import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundException;
+import ar.edu.itba.pod.models.exceptions.planeExceptions.IllegalPlaneStateException;
 import ar.edu.itba.pod.server.ServerStore;
 import ar.edu.itba.pod.server.models.Flight;
 
@@ -13,13 +14,10 @@ import java.rmi.RemoteException;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 
 public class SeatManagerServiceImpl implements SeatManagerService {
-
     private final ServerStore store;
-
 //    private final Lock seatLock = new ReentrantLock();
 
     public SeatManagerServiceImpl(ServerStore store) {
@@ -29,20 +27,17 @@ public class SeatManagerServiceImpl implements SeatManagerService {
     @Override
     public boolean isAvailable(String flightCode, int row, char seat) throws RemoteException {
         Flight flight = validateFlightCode(flightCode);
-        synchronized (flight) {
-            return flight.getPlane().checkSeat(row, seat);
-        }
+
+        return flight.checkSeat(row, seat);
     }
 
     @Override
     public void assign(String flightCode, String passenger, int row, char seat) throws RemoteException {
         // TODO: chequear
-        Flight flight = getValidatedFlight(flightCode, passenger, row, seat);
-        Ticket ticket = getTicket(flight, passenger);
-
-        synchronized (flight) {
-            flight.getPlane().assignSeat(row, seat, ticket);
-        }
+        //Flight flight = getValidatedFlight(flightCode, passenger, row, seat);
+        Flight flight = validateFlightCode(flightCode);
+        Ticket ticket = flight.getTicket(passenger);
+        flight.assignSeat(row, seat, ticket);
 
         syncNotify(flightCode, passenger, handler -> {
             try {
@@ -58,11 +53,11 @@ public class SeatManagerServiceImpl implements SeatManagerService {
 
     @Override
     public void changeSeat(String flightCode, String passenger, int freeRow, char freeSeat) throws RemoteException {
-        Flight flight = getValidatedFlight(flightCode, passenger, freeRow, freeSeat);
+        // Flight flight = getValidatedFlight(flightCode, passenger, freeRow, freeSeat);
 
-        synchronized (flight) {
-            flight.changeSeat(freeRow, freeSeat, passenger); // TODO: check
-        }
+        Flight flight = validateFlightCode(flightCode);
+        flight.changeSeat(freeRow, freeSeat, passenger); // TODO: check
+
 
         syncNotify(flightCode, passenger, handler -> {
             try {
@@ -77,54 +72,49 @@ public class SeatManagerServiceImpl implements SeatManagerService {
         });
     }
 
-    private Flight getValidatedFlight(String flightCode, String passenger, int row, char seat) {
-        Flight flight = validateFlightCode(flightCode);
-        RowCategory ticketCategory = getTicket(flight, passenger).getCategory();
-        RowCategory category = flight.getPlane().getRows()[row].getRowCategory();
-        if (category.ordinal() > ticketCategory.ordinal())
-            throw new RuntimeException();
-        return flight;
+    private Flight validateFlightCode(String flightCode) {
+        store.getFlightsLock().lock();
+        try {
+            return Optional.ofNullable(store.getFlights().get(flightCode))
+                    .orElseThrow(FlightNotFoundException::new); // TODO: nuestra excepcion;
+        } finally {
+            store.getFlightsLock().unlock();
+        }
     }
 
     @Override
     public List<FlightResponse> listAlternativeFlights(String flightCode, String passenger) throws RemoteException { //TODO : return string ?
-        validateFlightCode(flightCode);
+        Flight flight = validateFlightCode(flightCode);
 
-        //TODO: listAlternativeFlights
+        if (flight.getState().equals(FlightState.CONFIRMED))
+            throw new IllegalPlaneStateException();
 
         //      JFK | AA101 | 7 BUSINESS
         //      JFK | AA119 | 3 BUSINESS
         //      JFK | AA103 | 18 PREMIUM_ECONOMY
-
-        Flight flight = store.getFlights().get(flightCode);
-        Ticket ticket = getTicket(flight, passenger);
+        Ticket ticket = flight.getTicket(passenger);
         String destination = ticket.getDestination();
 
         List<Flight> alternativeFlights = store.getFlights().values()
-                .stream().filter(f -> f.getDestination().equals(destination)
+                .stream().filter(f -> !f.equals(flight) && f.getDestination().equals(destination)
                         && f.getState() == FlightState.PENDING)
                 .collect(Collectors.toList());
-//        alternativeFlights = alternativeFlights.stream().filter();
 
-        //List<FlightResponse> toRet = FlightResponse.compactFlights(alternativeFlights);
+        List<FlightResponse> toReturn = new ArrayList<>();
 
-//        return alternativeFlights;
-        //return toRet;
-        return new ArrayList<>();
+        alternativeFlights.forEach(alternative -> {
+            Map<RowCategory, Integer> availableSeats = new HashMap<>();
+            for (int i = ticket.getCategory().ordinal(); i >= 0; i--) {
+                int available = alternative.getAvailableByCategory(RowCategory.values()[i]);
+                if (i > 0)
+                    availableSeats.put(RowCategory.values()[i], available);
+            }
 
-//        StringBuilder stringBuilder = new StringBuilder();
-//        for (Flight f : alternativeFlights) {
-//            stringBuilder.append(f.getDestination()).append(" | ");
-//            stringBuilder.append(f.getCode()).append(" | ");
-//            for (int category = ticket.getCategory().ordinal();
-//                 category >= 0; category--) {
-//                RowCategory cat = RowCategory.values()[category];
-//                stringBuilder.append(f.getAvailableSeats(cat)).append(" ").append(cat).append('\n');
-//            }
-//
-//        }
+            if (availableSeats.keySet().size() > 0)
+                toReturn.add(new FlightResponse(alternative.getCode(), destination, availableSeats));
+        });
 
-
+        return toReturn;
     }
 
     @Override
@@ -132,28 +122,19 @@ public class SeatManagerServiceImpl implements SeatManagerService {
         Flight oldFlight;
         Flight newFlight;
 
-        store.getFlightsLock().lock();
+        store.getFlightsLock().lock(); // TODO refactor
         try {
             oldFlight = Optional.ofNullable(store.getFlights().get(oldFlightCode))
+                    .filter(f -> !f.getState().equals(FlightState.CONFIRMED))
                     .orElseThrow(FlightNotFoundException::new);
             newFlight = Optional.ofNullable(store.getFlights().get(newFlightCode))
+                    .filter(f -> f.getState().equals(FlightState.PENDING))
                     .orElseThrow(FlightNotFoundException::new);
         } finally {
             store.getFlightsLock().unlock();
         }
 
-        final Flight[] locks = Stream.of(oldFlight, newFlight)
-                .sorted(Comparator.comparing(Flight::getCode))
-                .toArray(Flight[]::new);
-
-        Ticket ticket;
-        synchronized (locks[0]) {
-            synchronized (locks[1]) {
-                ticket = getTicket(oldFlight, passenger);
-                oldFlight.getTickets().remove(ticket);
-                newFlight.getTickets().add(ticket);
-            }
-        }
+        oldFlight.changeFlight(passenger, newFlight);
 
         syncNotify(oldFlightCode, passenger, handler -> {
             try {
@@ -163,23 +144,6 @@ public class SeatManagerServiceImpl implements SeatManagerService {
             }
         });
 
-    }
-
-    private Flight validateFlightCode(String flightCode) {
-        store.getFlightsLock().lock();
-        try {
-            return Optional.ofNullable(store.getFlights().get(flightCode))
-                    .orElseThrow(FlightNotFoundException::new); // TODO: nuestra excepcion
-        } finally {
-            store.getFlightsLock().unlock();
-        }
-    }
-
-    private Ticket getTicket(Flight flight, String passenger) {
-        synchronized (flight) {
-            return flight.getTickets().stream().filter(t -> t.getPassenger().equals(passenger))
-                    .findFirst().orElseThrow(TicketNotFoundException::new);
-        }
     }
 
     private void syncNotify(String flightCode, String passenger, Consumer<NotificationHandler> handlerConsumer) {

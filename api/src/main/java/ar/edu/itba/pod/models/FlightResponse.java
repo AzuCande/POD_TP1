@@ -38,4 +38,17 @@ public class FlightResponse implements Serializable {
      */
 
 
+
+//        StringBuilder stringBuilder = new StringBuilder();
+//        for (Flight f : alternativeFlights) {
+//            stringBuilder.append(f.getDestination()).append(" | ");
+//            stringBuilder.append(f.getCode()).append(" | ");
+//            for (int category = ticket.getCategory().ordinal();
+//                 category >= 0; category--) {
+//                RowCategory cat = RowCategory.values()[category];
+//                stringBuilder.append(f.getAvailableSeats(cat)).append(" ").append(cat).append('\n');
+//            }
+//
+//        }
+
 }

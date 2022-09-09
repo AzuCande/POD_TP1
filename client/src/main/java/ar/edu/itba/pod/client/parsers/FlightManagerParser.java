@@ -9,7 +9,7 @@ public class FlightManagerParser {
     private static final String SERVER_ADDRESS = "serverAddress";
     private static final String ACTION = "action";
     private static final String PATH = "inPath";
-    private static final String FLIGHT_CODE = "flights";
+    private static final String FLIGHT_CODE = "flight";
 
     private String serverAddress;
     private Optional<FlightActions> action;

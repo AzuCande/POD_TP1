@@ -9,7 +9,6 @@ import ar.edu.itba.pod.models.exceptions.planeExceptions.IllegalPlaneException;
 
 public class PlaneModel implements Serializable {
     private final String model;
-
     private final Map<RowCategory, int[]> rowCategoryMap;
 
     public PlaneModel(String model, Map<String, int[]> rowCategoryMap) {
