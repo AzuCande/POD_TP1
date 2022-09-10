@@ -53,7 +53,8 @@ public class SeatQueryServiceImpl implements SeatQueryService {
     private Flight getFlight(String flightCode) {
         store.getFlightsLock().lock();
         try {
-            return Optional.ofNullable(store.getFlights().get(flightCode)).orElseThrow(FlightNotFoundException::new);
+            return null;
+            //return Optional.ofNullable(store.getFlights().get(flightCode)).orElseThrow(FlightNotFoundException::new);
         } finally {
             store.getFlightsLock().lock();
         }

@@ -3,7 +3,7 @@ package ar.edu.itba.pod.models;
 import java.io.Serializable;
 import java.util.Objects;
 
-public class Ticket implements Serializable {
+public class Ticket implements Serializable, Comparable<Ticket> {
     private final RowCategory category;
     private final String passenger;
     private final String destination;
@@ -39,5 +39,10 @@ public class Ticket implements Serializable {
 
     public String getDestination(){
         return destination;
+    }
+
+    @Override
+    public int compareTo(Ticket o) {
+        return passenger.compareTo(o.getPassenger());
     }
 }

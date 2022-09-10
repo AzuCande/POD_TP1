@@ -4,7 +4,6 @@ import ar.edu.itba.pod.callbacks.NotificationHandler;
 import ar.edu.itba.pod.interfaces.SeatManagerService;
 import ar.edu.itba.pod.models.*;
 import ar.edu.itba.pod.models.FlightResponse;
-import ar.edu.itba.pod.models.exceptions.notFoundExceptions.TicketNotFoundException;
 import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundException;
 import ar.edu.itba.pod.models.exceptions.planeExceptions.IllegalPlaneStateException;
 import ar.edu.itba.pod.server.ServerStore;
@@ -12,8 +11,10 @@ import ar.edu.itba.pod.server.models.Flight;
 
 import java.rmi.RemoteException;
 import java.util.*;
+import java.util.concurrent.locks.Lock;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 public class SeatManagerServiceImpl implements SeatManagerService {
@@ -34,17 +35,15 @@ public class SeatManagerServiceImpl implements SeatManagerService {
     @Override
     public void assign(String flightCode, String passenger, int row, char seat) throws RemoteException {
         // TODO: chequear
-        //Flight flight = getValidatedFlight(flightCode, passenger, row, seat);
         Flight flight = validateFlightCode(flightCode);
         Ticket ticket = flight.getTicket(passenger);
+
         flight.assignSeat(row, seat, ticket);
 
         syncNotify(flightCode, passenger, handler -> {
             try {
-                Ticket t = flight.getTickets().stream().filter(tic -> tic.getPassenger()
-                        .equals(passenger)).findFirst().orElseThrow(FlightNotFoundException::new);
-                handler.notifyAssignSeat(flightCode, flight.getDestination(), t.getCategory(),
-                        row, seat);
+                Ticket t = flight.getTicket(passenger);
+                handler.notifyAssignSeat(flightCode, flight.getDestination(), t.getCategory(), row, seat);
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
@@ -53,16 +52,13 @@ public class SeatManagerServiceImpl implements SeatManagerService {
 
     @Override
     public void changeSeat(String flightCode, String passenger, int freeRow, char freeSeat) throws RemoteException {
-        // Flight flight = getValidatedFlight(flightCode, passenger, freeRow, freeSeat);
-
         Flight flight = validateFlightCode(flightCode);
         flight.changeSeat(freeRow, freeSeat, passenger); // TODO: check
 
 
         syncNotify(flightCode, passenger, handler -> {
             try {
-                Ticket ticket = flight.getTickets().stream().filter(t -> t.getPassenger()
-                        .equals(passenger)).findFirst().orElseThrow(TicketNotFoundException::new);
+                Ticket ticket = flight.getTicket(passenger);
                 handler.notifyChangeSeat(flightCode, flight.getDestination(),
                         ticket.getCategory(), ticket.getRow(), ticket.getCol(), RowCategory.ECONOMY,
                         freeRow, freeSeat);
@@ -73,18 +69,21 @@ public class SeatManagerServiceImpl implements SeatManagerService {
     }
 
     private Flight validateFlightCode(String flightCode) {
-        store.getFlightsLock().lock();
-        try {
-            return Optional.ofNullable(store.getFlights().get(flightCode))
-                    .orElseThrow(FlightNotFoundException::new); // TODO: nuestra excepcion;
-        } finally {
-            store.getFlightsLock().unlock();
+        synchronized (store.getFlightCodes()) {
+            FlightState state = Optional.ofNullable(store.getFlightCodes().get(flightCode))
+                    .orElseThrow(FlightNotFoundException::new);
+
+            synchronized (store.getFlightsByState(state)) {
+                return Optional.ofNullable(store.getFlightsByState(state).get(flightCode))
+                        .orElseThrow(FlightNotFoundException::new);
+            }
         }
+
     }
 
     @Override
     public List<FlightResponse> listAlternativeFlights(String flightCode, String passenger) throws RemoteException { //TODO : return string ?
-        Flight flight = validateFlightCode(flightCode);
+        Flight flight = store.getFlight(flightCode);//;validateFlightCode(flightCode);
 
         if (flight.getState().equals(FlightState.CONFIRMED))
             throw new IllegalPlaneStateException();
@@ -95,10 +94,12 @@ public class SeatManagerServiceImpl implements SeatManagerService {
         Ticket ticket = flight.getTicket(passenger);
         String destination = ticket.getDestination();
 
-        List<Flight> alternativeFlights = store.getFlights().values()
-                .stream().filter(f -> !f.equals(flight) && f.getDestination().equals(destination)
-                        && f.getState() == FlightState.PENDING)
-                .collect(Collectors.toList());
+        List<Flight> alternativeFlights;
+
+        synchronized (store.getPendingFlights()) {
+            alternativeFlights = store.getPendingFlights().values().stream()
+                    .filter(f -> f.getDestination().equals(destination)).collect(Collectors.toList());
+        }
 
         List<FlightResponse> toReturn = new ArrayList<>();
 
@@ -119,22 +120,26 @@ public class SeatManagerServiceImpl implements SeatManagerService {
 
     @Override
     public void changeFlight(String passenger, String oldFlightCode, String newFlightCode) throws RemoteException {
-        Flight oldFlight;
-        Flight newFlight;
+        Flight oldFlight = Optional.ofNullable(store.getFlight(oldFlightCode))
+                .filter(f -> !f.getState().equals(FlightState.CONFIRMED))
+                .orElseThrow(FlightNotFoundException::new);
 
-        store.getFlightsLock().lock(); // TODO refactor
-        try {
-            oldFlight = Optional.ofNullable(store.getFlights().get(oldFlightCode))
-                    .filter(f -> !f.getState().equals(FlightState.CONFIRMED))
-                    .orElseThrow(FlightNotFoundException::new);
-            newFlight = Optional.ofNullable(store.getFlights().get(newFlightCode))
-                    .filter(f -> f.getState().equals(FlightState.PENDING))
-                    .orElseThrow(FlightNotFoundException::new);
-        } finally {
-            store.getFlightsLock().unlock();
-        }
+        Flight newFlight = Optional.ofNullable(store.getFlight(newFlightCode))
+                .filter(f -> f.getState().equals(FlightState.PENDING))
+                .orElseThrow(FlightNotFoundException::new);
+
+        Lock[] locks = Stream.of(oldFlight, newFlight)
+                .sorted(Comparator.comparing(Flight::getCode))
+                .map(Flight::getFlightLock)
+                .toArray(Lock[]::new);
+
+        locks[0].lock();
+        locks[1].lock();
 
         oldFlight.changeFlight(passenger, newFlight);
+
+        locks[1].unlock();
+        locks[0].unlock();
 
         syncNotify(oldFlightCode, passenger, handler -> {
             try {
@@ -166,6 +171,7 @@ public class SeatManagerServiceImpl implements SeatManagerService {
 
         synchronized (handlers) {
             for (NotificationHandler handler : handlers) {
+                store.submitNotificationTask(() -> handlerConsumer.accept(handler));
                 handlerConsumer.accept(handler);
             }
         }

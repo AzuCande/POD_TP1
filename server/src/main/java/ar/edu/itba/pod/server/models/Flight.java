@@ -7,22 +7,21 @@ import ar.edu.itba.pod.models.Ticket;
 import ar.edu.itba.pod.models.exceptions.IllegalPassengerCategoryException;
 import ar.edu.itba.pod.models.exceptions.IllegalRowException;
 import ar.edu.itba.pod.models.exceptions.PassengerAlreadySeatedException;
-import ar.edu.itba.pod.models.exceptions.PassengerNotSeatedException;
-import ar.edu.itba.pod.models.exceptions.notFoundExceptions.TicketNotFoundException;
 import ar.edu.itba.pod.models.exceptions.planeExceptions.IllegalPlaneStateException;
+import ar.edu.itba.pod.models.exceptions.seatExceptions.SeatAlreadyTakenException;
 
-import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
 public class Flight {
     private final String code;
     private final String destination;
     private FlightState state = FlightState.PENDING;
 
-    private final List<Ticket> tickets;
+    private final Map<String, Ticket> tickets;
 
     private final Row[] rows;
 
@@ -33,7 +32,7 @@ public class Flight {
     public Flight(PlaneModel model, String code, String destination, List<Ticket> tickets) {
         this.code = code;
         this.destination = destination;
-        this.tickets = tickets;
+        this.tickets = tickets.stream().collect(Collectors.toMap(Ticket::getPassenger, t -> t));
 
         int[] business = model.getCategoryConfig(RowCategory.BUSINESS);
         int[] premium = model.getCategoryConfig(RowCategory.PREMIUM_ECONOMY);
@@ -68,7 +67,7 @@ public class Flight {
         return code;
     }
 
-    public List<Ticket> getTickets() {
+    public Map<String, Ticket> getTickets() {
         return tickets;
     }
 
@@ -100,15 +99,17 @@ public class Flight {
         }
     }
 
-    public void assignSeat(int rowNumber, char seat, Ticket ticket) { // TODO: concurrencia
+    public void assignSeat(int rowNumber, char seat, Ticket ticket) {
         checkValidRow(rowNumber);
 
-        flightLock.lock();
+        flightLock.lock(); // TODO poner el informe que se podria ser mas granular y solo lockear por row
+        // IGUAL no se podria ya que podrian cambiar el estado
         Row row = rows[rowNumber];
-        row.checkValidSeat(seat);
-        row.checkSeatAvailable(seat);
+        try {
+            row.checkValidSeat(seat);
+            if (!row.isAvailable(seat))
+                throw new SeatAlreadyTakenException(seat);// TODO habria que pasarle row tambien
 
-        try { // TODO: granularidad
             if (state != FlightState.PENDING) {
                 throw new IllegalPlaneStateException();
             }
@@ -133,9 +134,7 @@ public class Flight {
         Row row = rows[rowNumber];
         row.assignSeat(seat, ticket.getPassenger()); //TODO: tira exception si estás pisando a alguien en un asiento
 
-        synchronized (ticket) {
-            ticket.setSeat(rowNumber, seat);
-        }
+        ticket.setSeat(rowNumber, seat);
 
         availableSeats[row.getRowCategory().ordinal()]--;
     }
@@ -147,41 +146,16 @@ public class Flight {
     }
 
     public void changeFlight(String passenger, Flight other) {
-        final Flight[] locks = Stream.of(this, other)
-                .sorted(Comparator.comparing(Flight::getCode))
-                .toArray(Flight[]::new);
-
-        Ticket ticket;
-        synchronized (locks[0]) {
-            synchronized (locks[1]) {
-                ticket = getTicket(passenger);
-                this.getTickets().remove(ticket); // TODO: check
-                other.getTickets().add(ticket);
-            }
-        }
+        Ticket ticket = getTicket(passenger);
+        tickets.remove(passenger);
+        other.getTickets().put(passenger, ticket);
     }
-
-    /*
-    public void findSeat(Ticket ticket) {
-        plane.findSeat(ticket);
-        tickets.add(ticket);
-    }
-
-    public void removeTicket(Ticket ticket) {
-        plane.removeTicket(ticket);
-        tickets.remove(ticket);
-    }
-
-     */
 
     public void changeSeat(int freeRow, char freeSeat, String passenger) {
-        Ticket ticket = tickets.stream().filter(t -> t.getPassenger().equals(passenger))
-                .findFirst().orElseThrow(TicketNotFoundException::new);
-
         checkValidRow(freeRow);
-
         flightLock.lock();
 
+        Ticket ticket = getTicket(passenger);
         try {
             if (state != FlightState.PENDING) {
                 throw new IllegalPlaneStateException();
@@ -194,20 +168,28 @@ public class Flight {
                     row.removePassenger(ticket.getPassenger());
                     availableSeats[row.getRowCategory().ordinal()]++;
                     seatPassenger(freeRow, freeSeat, ticket);
-                    return;
+                    break;
                 }
             }
         } finally {
             flightLock.unlock();
         }
-
-        throw new PassengerNotSeatedException();
     }
 
     public int getAvailableByCategory(RowCategory category) {
+        int toReturn;
+
+        flightLock.lock();
+        toReturn = availableSeats[category.ordinal()];
+        flightLock.unlock();
+
+        return toReturn;
+
+    }
+
+    public int getAvailableCategory(RowCategory category) {
         int toReturn = -1;
         flightLock.lock();
-
         for (int i = category.ordinal(); i >= 0; i--) {
             if (availableSeats[i] > 0) {
                 toReturn = i;
@@ -218,19 +200,17 @@ public class Flight {
         return toReturn;
     }
 
-    public int getAvailableSeats(RowCategory category) {
-        for (int i = category.ordinal(); i >= 0; i--) {
-            if (availableSeats[i] > 0) return i;
+    public Ticket getTicket(String passenger) {
+        synchronized (tickets) {
+            return tickets.get(passenger);
         }
-        return -1;
-    }
-
-    public Ticket getTicket(String passenger){
-        return tickets.stream().filter(t -> t.getPassenger().equals(passenger))
-                .findFirst().orElseThrow(TicketNotFoundException::new);
     }
 
     public Row[] getRows() {
         return rows;
+    }
+
+    public Lock getFlightLock() {
+        return flightLock;
     }
 }

@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static ar.edu.itba.pod.client.utils.FlightActions.*;
 
 public class FlightManagerClient {
     private static final Logger logger = LoggerFactory.getLogger(FlightManagerClient.class); // TODO: SymbolError con mvn install
