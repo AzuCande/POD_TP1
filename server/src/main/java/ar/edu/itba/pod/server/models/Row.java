@@ -26,7 +26,6 @@ public class Row { // TODO se usa en una interfaz remota?
     }
 
     public boolean isAvailable(char seat) {
-        checkValidSeat(seat);
         return this.passengerNames[seat - 'A'] == null;
     }
 
@@ -52,8 +51,6 @@ public class Row { // TODO se usa en una interfaz remota?
     }
 
     public void assignSeat(char seat, String passengerName) {
-        checkSeatAvailable(seat);
-
         this.passengerNames[seat - 'A'] = passengerName;
     }
 
@@ -69,13 +66,6 @@ public class Row { // TODO se usa en una interfaz remota?
     public void checkValidSeat(char seat) {
         if (seat < 'A' || seat >= 'A' + passengerNames.length) {
             throw new InvalidSeatException(seat);
-        }
-    }
-    
-    public void checkSeatAvailable(char seat) {
-        checkValidSeat(seat);
-        if (!isAvailable(seat)) {
-            throw new SeatAlreadyTakenException(seat);
         }
     }
 

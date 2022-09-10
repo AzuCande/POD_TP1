@@ -1,6 +1,9 @@
 package ar.edu.itba.pod.server;
 
 import ar.edu.itba.pod.callbacks.NotificationHandler;
+import ar.edu.itba.pod.models.FlightState;
+import ar.edu.itba.pod.models.Ticket;
+import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundException;
 import ar.edu.itba.pod.server.models.Flight;
 import ar.edu.itba.pod.models.PlaneModel;
 
@@ -13,7 +16,14 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class ServerStore {
     private final Map<String, PlaneModel> planeModels = new HashMap<>();
-    private final Map<String, Flight> flights = new HashMap<>();
+    // private final Map<String, Flight> flights = new HashMap<>();
+
+    private final Map<String, FlightState> flightCodes = new HashMap<>();
+
+    private final Map<String, Flight> pendingFlights = new HashMap<>();
+    private final Map<String, Flight> confirmedFlights = new HashMap<>();
+    private final Map<String, Flight> cancelledFlights = new HashMap<>();
+
 
     /**
      * Mapa de Flight Code a Mapa de Passenger a Lista de Handlers
@@ -31,9 +41,9 @@ public class ServerStore {
         return planeModels;
     }
 
-    public Map<String, Flight> getFlights() {
-        return flights;
-    }
+//    public Map<String, Flight> getFlights() {
+//        return flights;
+//    }
 
     public Lock getFlightsLock() {
         return flightsLock;
@@ -64,16 +74,16 @@ public class ServerStore {
 
         executor.submit(() -> {
             try {
-                // TODO: buscar ticket con asientos
-                handler.notifyRegister(flightCode, flights.get(flightCode).getDestination(),
-                        null, -1, 'Z'); // TODO como indicamos que no hay?
+                FlightState state = flightCodes.get(flightCode); // TODO: lock
+                Flight flight = getFlightsByState(state).get(flightCode);
+                Ticket ticket = flight.getTicket(passenger);
+
+                handler.notifyRegister(flightCode, flight.getDestination(),
+                        ticket.getCategory(), ticket.getRow(), ticket.getCol());
             } catch (RemoteException e) {
                 e.printStackTrace();
             }
         });
-
-        // TODO: https://www.codejava.net/java-core/concurrency/java-concurrent-collection-copyonwritearraylist-examples#:~:text=The%20CopyOnWriteArrayList%20class%20uses%20a%20mechanism%20called%20copy-on-write,iterator%2C%20listIterator%2C%20etc%29%20work%20on%20a%20different%20copy.
-        // verificar si esa implementación es thread safe
     }
 
     public void submitNotificationTask(Runnable task) {
@@ -87,4 +97,47 @@ public class ServerStore {
     public Lock getNotificationsLock() {
         return notificationsLock;
     }
+
+    public Map<String, Flight> getFlightsByState(FlightState state) {
+        switch (state) {
+            case PENDING:
+                return pendingFlights;
+            case CONFIRMED:
+                return confirmedFlights;
+            case CANCELED:
+                return cancelledFlights;
+        }
+        return Collections.emptyMap();
+    }
+
+    public Map<String, Flight> getPendingFlights() {
+        return pendingFlights;
+    }
+
+    public Map<String, Flight> getConfirmedFlights() {
+        return confirmedFlights;
+    }
+
+    public Map<String, Flight> getCancelledFlights() {
+        return cancelledFlights;
+    }
+
+    public Flight getFlight(String flightCode) {
+        synchronized (flightCodes) {
+            FlightState state = Optional.ofNullable(getFlightCodes().get(flightCode))
+                    .orElseThrow(FlightNotFoundException::new);
+
+            synchronized (getFlightsByState(state)) {
+                return Optional.ofNullable(getFlightsByState(state).get(flightCode))
+                        .orElseThrow(FlightNotFoundException::new);
+            }
+        }
+    }
+
+    public Map<String, FlightState> getFlightCodes() {
+        return flightCodes;
+    }
+
+
+
 }

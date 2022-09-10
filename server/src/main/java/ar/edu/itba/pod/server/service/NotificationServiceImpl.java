@@ -24,6 +24,7 @@ public class NotificationServiceImpl implements NotificationService {
             throws RemoteException {
         store.getFlightsLock().lock();
 
+        /*
         try {
             Flight flight = Optional.ofNullable(store.getFlights().get(flightCode))
                     .filter(f -> !f.getState().equals(FlightState.CONFIRMED))
@@ -36,5 +37,7 @@ public class NotificationServiceImpl implements NotificationService {
         }
 
         store.registerUser(flightCode, passenger, handler);
+
+         */
     }
 }
