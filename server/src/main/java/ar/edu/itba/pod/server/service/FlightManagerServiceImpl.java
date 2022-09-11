@@ -3,7 +3,6 @@ package ar.edu.itba.pod.server.service;
 import ar.edu.itba.pod.callbacks.NotificationHandler;
 import ar.edu.itba.pod.models.*;
 import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundException;
-import ar.edu.itba.pod.models.exceptions.notFoundExceptions.PlaneNotFoundException;
 import ar.edu.itba.pod.models.exceptions.notFoundExceptions.TicketNotFoundException;
 import ar.edu.itba.pod.interfaces.FlightManagerService;
 import ar.edu.itba.pod.models.exceptions.planeExceptions.IllegalPlaneStateException;
@@ -57,8 +56,7 @@ public class FlightManagerServiceImpl implements FlightManagerService {
             modelsLock.unlock();
         }
 
-
-        // TODO hace que esten anidados?
+        // TODO hace falta que esten anidados?
         synchronized (store.getFlightCodes()) {
             synchronized (store.getPendingFlights()) {
                 if (store.getFlightCodes().containsKey(flightCode))
@@ -91,13 +89,13 @@ public class FlightManagerServiceImpl implements FlightManagerService {
 
     private void changeFlightState(String flightCode, FlightState state) {
         Flight flight;
-
         synchronized (store.getFlightCodes()) {
             synchronized (store.getPendingFlights()) {
                 if (!store.getPendingFlights().containsKey(flightCode))
                     throw new IllegalPlaneStateException();
 
                 flight = store.getPendingFlights().remove(flightCode);
+                flight.setState(state); // TODO check si no se rompe nada
             }
             Map<String, Flight> flights = store.getFlightsByState(state);
             synchronized (flights) {
@@ -105,8 +103,6 @@ public class FlightManagerServiceImpl implements FlightManagerService {
                 flights.put(flightCode, flight);
             }
         }
-
-        flight.setState(state);
 
         // TODO: modularizar notis
         Map<String, List<NotificationHandler>> flightNotifications;
@@ -159,10 +155,12 @@ public class FlightManagerServiceImpl implements FlightManagerService {
                 .sorted(Comparator.comparing(Flight::getCode)).collect(Collectors.toList());
 
         for (Flight cancelled : cancelledFlights) {
-            synchronized (cancelled.getTickets()) {
+            cancelled.getSeatsLock().lock();
+            try {
                 List<Ticket> tickets = cancelled.getTickets().values().stream()
                         .sorted(Comparator.naturalOrder()).collect(Collectors.toList());
 
+                // TODO en el informe: seat lock es obligatorio porque pueden cambiar tickets individuales
                 for (Ticket ticket : tickets) {
                     Comparator<Flight> comparator = (flight1, flight2) -> {
                         int cat1 = flight1.getAvailableCategory(ticket.getCategory());
@@ -177,11 +175,10 @@ public class FlightManagerServiceImpl implements FlightManagerService {
 
                     Flight newFlight;
 
-                    final Lock[] locks;
                     synchronized (store.getPendingFlights()) {
                         newFlight = store.getPendingFlights().values().stream().filter(flight ->
-                                flight.getDestination().equals(ticket.getDestination()) &&
-                                        flight.getAvailableByCategory(ticket.getCategory()) != -1)
+                                        flight.getDestination().equals(ticket.getDestination()) &&
+                                                flight.getAvailableByCategory(ticket.getCategory()) != -1)
                                 .min(comparator)
                                 .orElse(null);
 
@@ -190,22 +187,23 @@ public class FlightManagerServiceImpl implements FlightManagerService {
                             continue;
                         }
 
-                        locks = Stream.of(cancelled, newFlight)
-                                .sorted(Comparator.comparing(Flight::getCode))
-                                .map(Flight::getFlightLock)
-                                .toArray(Lock[]::new);
+                        // PRIMERO ESTADO, DESPUÉS ASIENTO
+                        newFlight.getStateLock().lock();
+                        newFlight.getSeatsLock().lock();
 
-                        locks[0].lock();
-                        locks[1].lock();
                     }
 
-                    cancelled.changeFlight(ticket.getPassenger(), newFlight);
+                    cancelled.changeFlight(ticket.getPassenger(), newFlight); // TODO ver si puede fallar
 
-                    locks[1].unlock();
-                    locks[0].unlock();
+                    newFlight.getSeatsLock().unlock();
+                    newFlight.getStateLock().unlock();
+
                     // TODO notificaciones
                 }
+            } finally {
+                cancelled.getSeatsLock().unlock();
             }
+
         }
 
 //                // NOTIFICACIONES

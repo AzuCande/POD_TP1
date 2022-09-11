@@ -8,6 +8,8 @@ import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundExcept
 import ar.edu.itba.pod.models.exceptions.planeExceptions.IllegalPlaneStateException;
 import ar.edu.itba.pod.server.ServerStore;
 import ar.edu.itba.pod.server.models.Flight;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.rmi.RemoteException;
 import java.util.*;
@@ -18,6 +20,7 @@ import java.util.stream.Stream;
 
 
 public class SeatManagerServiceImpl implements SeatManagerService {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SeatManagerServiceImpl.class);
     private final ServerStore store;
 //    private final Lock seatLock = new ReentrantLock();
 
@@ -29,32 +32,61 @@ public class SeatManagerServiceImpl implements SeatManagerService {
     public boolean isAvailable(String flightCode, int row, char seat) throws RemoteException {
         Flight flight = validateFlightCode(flightCode);
 
-        return flight.checkSeat(row, seat);
+        flight.getSeatsLock().lock(); // TODO poner el informe que se podria ser mas granular y solo lockear por row
+        // IGUAL no se podria ya que podrian cambiar el estado
+        try {
+            return flight.checkSeat(row, seat);
+        } finally {
+            flight.getStateLock().unlock();
+        }
     }
 
     @Override
     public void assign(String flightCode, String passenger, int row, char seat) throws RemoteException {
         // TODO: chequear
-        Flight flight = validateFlightCode(flightCode);
-        Ticket ticket = flight.getTicket(passenger);
+         Flight flight;// = validateFlightCode(flightCode);
 
-        flight.assignSeat(row, seat, ticket);
+        synchronized (store.getPendingFlights()) {
+            flight = Optional.ofNullable(store.getPendingFlights().get(flightCode))
+                    .orElseThrow(IllegalPlaneStateException::new);
+            flight.getStateLock().lock();
+        }
+
+        flight.getSeatsLock().lock();
+        try {
+            flight.assignSeat(row, seat, passenger);
+        } finally {
+            flight.getSeatsLock().unlock();
+            flight.getStateLock().unlock();
+        }
 
         syncNotify(flightCode, passenger, handler -> {
             try {
                 Ticket t = flight.getTicket(passenger);
                 handler.notifyAssignSeat(flightCode, flight.getDestination(), t.getCategory(), row, seat);
             } catch (RemoteException e) {
-                e.printStackTrace();
+                LOGGER.info(e.getMessage());
             }
         });
     }
 
     @Override
     public void changeSeat(String flightCode, String passenger, int freeRow, char freeSeat) throws RemoteException {
-        Flight flight = validateFlightCode(flightCode);
-        flight.changeSeat(freeRow, freeSeat, passenger); // TODO: check
+        Flight flight;// = validateFlightCode(flightCode);
 
+        synchronized (store.getPendingFlights()) {
+            flight = Optional.ofNullable(store.getPendingFlights().get(flightCode))
+                    .orElseThrow(IllegalPlaneStateException::new);
+            flight.getStateLock().lock();
+        }
+
+        flight.getSeatsLock().lock();
+        try {
+            flight.changeSeat(freeRow, freeSeat, passenger);
+        } finally {
+            flight.getSeatsLock().unlock();
+            flight.getStateLock().unlock();
+        }
 
         syncNotify(flightCode, passenger, handler -> {
             try {
@@ -78,7 +110,6 @@ public class SeatManagerServiceImpl implements SeatManagerService {
                         .orElseThrow(FlightNotFoundException::new);
             }
         }
-
     }
 
     @Override
@@ -120,6 +151,17 @@ public class SeatManagerServiceImpl implements SeatManagerService {
 
     @Override
     public void changeFlight(String passenger, String oldFlightCode, String newFlightCode) throws RemoteException {
+        /*
+        Flight oldFlight;
+        synchronized (store.getFlightCodes()) {
+            FlightState state = Optional.ofNullable(store.getFlightCodes().get(flightCode))
+                    .orElseThrow(FlightNotFoundException::new);
+
+            synchronized (store.getFlightsByState(state)) {
+                return Optional.ofNullable(store.getFlightsByState(state).get(flightCode))
+                        .orElseThrow(FlightNotFoundException::new);
+            }
+        }
         Flight oldFlight = Optional.ofNullable(store.getFlight(oldFlightCode))
                 .filter(f -> !f.getState().equals(FlightState.CONFIRMED))
                 .orElseThrow(FlightNotFoundException::new);
@@ -130,7 +172,7 @@ public class SeatManagerServiceImpl implements SeatManagerService {
 
         Lock[] locks = Stream.of(oldFlight, newFlight)
                 .sorted(Comparator.comparing(Flight::getCode))
-                .map(Flight::getFlightLock)
+                .map(Flight::getStateLock)
                 .toArray(Lock[]::new);
 
         locks[0].lock();
@@ -148,6 +190,8 @@ public class SeatManagerServiceImpl implements SeatManagerService {
                 e.printStackTrace();
             }
         });
+        
+         */
 
     }
 

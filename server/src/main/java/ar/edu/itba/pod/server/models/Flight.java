@@ -27,7 +27,9 @@ public class Flight {
 
     private final int[] availableSeats = {0, 0, 0};
 
-    private final Lock flightLock = new ReentrantLock();
+    private final Lock stateLock = new ReentrantLock();
+
+    private final Lock seatsLock = new ReentrantLock();
 
     public Flight(PlaneModel model, String code, String destination, List<Ticket> tickets) {
         this.code = code;
@@ -72,70 +74,48 @@ public class Flight {
     }
 
     public FlightState getState() {
-        flightLock.lock();
-        try {
-            return state;
-        } finally {
-            flightLock.unlock();
-        }
+        return state;
     }
 
     public void setState(FlightState state) {
-        flightLock.lock();
         this.state = state;
-        flightLock.unlock();
     }
 
     public boolean checkSeat(int row, char seat) {
         checkValidRow(row);
-        flightLock.lock();
-        try {
-            if (state != FlightState.PENDING) {
-                throw new IllegalPlaneStateException();
-            }
-            return rows[row].isAvailable(seat);
-        } finally {
-            flightLock.unlock();
+        /*
+        if (state != FlightState.PENDING) {
+            throw new IllegalPlaneStateException();
         }
+         */
+        return rows[row].isAvailable(seat);
     }
 
-    public void assignSeat(int rowNumber, char seat, Ticket ticket) {
+    public void assignSeat(int rowNumber, char seat, String passenger) {
         checkValidRow(rowNumber);
 
-        flightLock.lock(); // TODO poner el informe que se podria ser mas granular y solo lockear por row
-        // IGUAL no se podria ya que podrian cambiar el estado
         Row row = rows[rowNumber];
-        try {
-            row.checkValidSeat(seat);
-            if (!row.isAvailable(seat))
-                throw new SeatAlreadyTakenException(seat);// TODO habria que pasarle row tambien
+        row.checkValidSeat(seat);
+        if (!row.isAvailable(seat))
+            throw new SeatAlreadyTakenException(seat);// TODO habria que pasarle row tambien
 
-            if (state != FlightState.PENDING) {
-                throw new IllegalPlaneStateException();
-            }
+        Ticket ticket = tickets.get(passenger);
 
-            if (rows[rowNumber].getRowCategory().ordinal() < ticket.getCategory().ordinal()) {
-                throw new IllegalPassengerCategoryException();
-            }
-
-            for (Row r : rows) {
-                if (r.passengerHasSeat(ticket.getPassenger())) {
-                    throw new PassengerAlreadySeatedException();
-                }
-            }
-            seatPassenger(rowNumber, seat, ticket);
-
-        } finally {
-            flightLock.unlock();
+        if(ticket.isSeated()) {
+            throw new PassengerAlreadySeatedException();
         }
+
+        if (rows[rowNumber].getRowCategory().ordinal() < ticket.getCategory().ordinal()) {
+            throw new IllegalPassengerCategoryException();
+        }
+
+        seatPassenger(rowNumber, seat, ticket);
     }
 
     private void seatPassenger(int rowNumber, char seat, Ticket ticket) {
         Row row = rows[rowNumber];
-        row.assignSeat(seat, ticket.getPassenger()); //TODO: tira exception si estás pisando a alguien en un asiento
-
+        row.assignSeat(seat, ticket.getPassenger());
         ticket.setSeat(rowNumber, seat);
-
         availableSeats[row.getRowCategory().ordinal()]--;
     }
 
@@ -146,42 +126,37 @@ public class Flight {
     }
 
     public void changeFlight(String passenger, Flight other) {
-        Ticket ticket = getTicket(passenger);
-        tickets.remove(passenger);
-        other.getTickets().put(passenger, ticket);
+        //Ticket ticket = tickets.get(passenger); //getTicket(passenger);
+        Ticket ticket = tickets.remove(passenger);
+        if (ticket.isSeated()) {
+            int row = ticket.getRow();
+            rows[row].removePassenger(passenger); // TODO check eficiencia
+            availableSeats[rows[row].getRowCategory().ordinal()]++;
+        }
+        ticket.setSeat(null, null);
+        other.getTickets().put(passenger, ticket); // TODO: check que no lo tenga ya
     }
 
     public void changeSeat(int freeRow, char freeSeat, String passenger) {
         checkValidRow(freeRow);
-        flightLock.lock();
-
+        Row row = rows[freeRow];
+        row.checkValidSeat(freeSeat);
+        if (!row.isAvailable(freeSeat))
+            throw new SeatAlreadyTakenException(freeSeat);// TODO habria que pasarle row tambien
         Ticket ticket = getTicket(passenger);
-        try {
-            if (state != FlightState.PENDING) {
-                throw new IllegalPlaneStateException();
-            }
-            for (Row row : rows) {
-                if (row.passengerHasSeat(ticket.getPassenger())) {
-                    if (row.getRowCategory().ordinal() < ticket.getCategory().ordinal())
-                        throw new IllegalPassengerCategoryException();
 
-                    row.removePassenger(ticket.getPassenger());
-                    availableSeats[row.getRowCategory().ordinal()]++;
-                    seatPassenger(freeRow, freeSeat, ticket);
-                    break;
-                }
-            }
-        } finally {
-            flightLock.unlock();
-        }
+        row.removePassenger(passenger);
+        ticket.setSeat(null, null);
+        availableSeats[row.getRowCategory().ordinal()]++;
+        seatPassenger(freeRow, freeSeat, ticket);
     }
 
     public int getAvailableByCategory(RowCategory category) {
         int toReturn;
 
-        flightLock.lock();
+        stateLock.lock();
         toReturn = availableSeats[category.ordinal()];
-        flightLock.unlock();
+        stateLock.unlock();
 
         return toReturn;
 
@@ -189,20 +164,23 @@ public class Flight {
 
     public int getAvailableCategory(RowCategory category) {
         int toReturn = -1;
-        flightLock.lock();
+        stateLock.lock();
         for (int i = category.ordinal(); i >= 0; i--) {
             if (availableSeats[i] > 0) {
                 toReturn = i;
                 break;
             }
         }
-        flightLock.unlock();
+        stateLock.unlock();
         return toReturn;
     }
 
     public Ticket getTicket(String passenger) {
-        synchronized (tickets) {
+        seatsLock.lock();
+        try {
             return tickets.get(passenger);
+        } finally {
+            seatsLock.unlock();
         }
     }
 
@@ -210,7 +188,11 @@ public class Flight {
         return rows;
     }
 
-    public Lock getFlightLock() {
-        return flightLock;
+    public Lock getStateLock() {
+        return stateLock;
+    }
+
+    public Lock getSeatsLock() {
+        return seatsLock;
     }
 }

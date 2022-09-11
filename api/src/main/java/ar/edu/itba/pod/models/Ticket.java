@@ -16,6 +16,10 @@ public class Ticket implements Serializable, Comparable<Ticket> {
         this.destination = destination;
     }
 
+    public boolean isSeated() {
+        return row != null && col != null;
+    }
+
     public void setSeat(Integer row, Character col) {
         this.row = row;
         this.col = col;
@@ -37,7 +41,7 @@ public class Ticket implements Serializable, Comparable<Ticket> {
         return category;
     }
 
-    public String getDestination(){
+    public String getDestination() {
         return destination;
     }
 
