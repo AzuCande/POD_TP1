@@ -3,7 +3,7 @@
 TP_PATH=/Users/patrick/Desktop/ITBA/POD/TP1/POD_TP1
 cd $TP_PATH
 
-mvn install
+mvn clean install
 
 cd server/target
 tar -xzf tpe1-g6-server-1.0-SNAPSHOT-bin.tar.gz

@@ -13,6 +13,7 @@ import java.util.Optional;
 
 public class NotificationServiceImpl implements NotificationService {
 
+    // TODO: cuando cambia de vuelo, cambiar la notificacion
     private final ServerStore store;
 
     public NotificationServiceImpl(ServerStore store) {

@@ -2,8 +2,10 @@ package ar.edu.itba.pod.client.parsers;
 
 import ar.edu.itba.pod.client.utils.SeatActions;
 
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 public class SeatManagerParser {
     private static final String SERVER_ADDRESS = "serverAddress";
@@ -12,7 +14,7 @@ public class SeatManagerParser {
     private static final String PASSENGER = "passenger";
     private static final String ROW = "row";
     private static final String COLUMN = "col";
-    private static final String ORIGINAL_FLIGHT = "originalFlightCode";
+    private static final String ORIGINAL_FLIGHT = "originalFlight";
 
     private String serverAddress;
     private String flightCode;
@@ -25,24 +27,28 @@ public class SeatManagerParser {
     public void parse() {
         Properties props = System.getProperties();
 
-        if((serverAddress = props.getProperty(SERVER_ADDRESS)) == null) {
+        if ((serverAddress = props.getProperty(SERVER_ADDRESS)) == null) {
             System.out.println("Server address not specified");
             System.exit(1);
         }
 
         try {
-            action = Optional.ofNullable(props.getProperty(ACTION)).map(SeatActions::valueOf);
+            action = Optional.ofNullable(props.getProperty(ACTION)).map(p ->
+                    Arrays.stream(SeatActions.values()).filter(a -> a.getDescription().equals(p))
+                            .findFirst().orElseThrow(IllegalArgumentException::new));
         } catch (IllegalArgumentException e) {
             System.out.println("Invalid action");
+            System.out.println();
+            e.printStackTrace(System.out);
             System.exit(1);
         }
 
-        if(!action.isPresent()) {
+        if (!action.isPresent()) {
             System.out.println("Action not specified");
             System.exit(1);
         }
 
-        if((flightCode = props.getProperty(FLIGHT_CODE)) == null) {
+        if ((flightCode = props.getProperty(FLIGHT_CODE)) == null) {
             System.out.println("Flight not specified");
             System.exit(1);
         }
@@ -50,10 +56,12 @@ public class SeatManagerParser {
         passenger = Optional.ofNullable(props.getProperty(PASSENGER));
         String auxRow = props.getProperty(ROW);
 
+        //TODO: para changeTicket no hace falta la columna ni el row
+//        if(!SeatActions.CHANGE_TICKET.equals(action.orElse(null)) || !SeatActions.ALTERNATIVES.equals(action.orElse(null)))
         column = Optional.ofNullable(props.getProperty(COLUMN).charAt(0));
         originalFlightCode = Optional.ofNullable(props.getProperty(ORIGINAL_FLIGHT));
 
-        if(SeatActions.STATUS.equals(action.orElse(null)) || SeatActions.ASSIGN.equals(action.orElse(null)) ||
+        if (SeatActions.STATUS.equals(action.orElse(null)) || SeatActions.ASSIGN.equals(action.orElse(null)) ||
                 SeatActions.MOVE.equals(action.orElse(null))) {
             try {
                 row = Optional.ofNullable(props.getProperty(ROW)).map(Integer::parseInt);
@@ -61,13 +69,13 @@ public class SeatManagerParser {
                 System.out.println("Invalid row");
                 System.exit(1);
             }
-            if(!column.isPresent()) {
+            if (!column.isPresent()) {
                 System.out.println("Column not specified");
                 System.exit(1);
             }
         }
 
-        if(SeatActions.ASSIGN.equals(action.orElse(null)) || SeatActions.MOVE.equals(action.orElse(null))
+        if (SeatActions.ASSIGN.equals(action.orElse(null)) || SeatActions.MOVE.equals(action.orElse(null))
                 || SeatActions.ALTERNATIVES.equals(action.orElse(null)) || SeatActions.CHANGE_TICKET.equals(action.orElse(null))) {
             if (!passenger.isPresent()) {
                 System.out.println("Passenger not specified");

@@ -25,8 +25,9 @@ public class SeatManagerClient {
 
         switch (parser.getAction().get()) {
             case STATUS:
+                System.out.println("Status: "+
                 service.isAvailable(parser.getFlightCode(), parser.getRow().orElseThrow(RuntimeException::new),
-                        parser.getColumn().orElseThrow(RuntimeException::new));
+                        parser.getColumn().orElseThrow(RuntimeException::new)));
                 break;
             case ASSIGN:
                 service.assign(parser.getFlightCode(), parser.getPassenger().orElseThrow(RuntimeException::new),

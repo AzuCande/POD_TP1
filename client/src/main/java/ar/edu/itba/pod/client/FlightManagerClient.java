@@ -123,7 +123,6 @@ public class FlightManagerClient {
                 .withCSVParser(CSV_PARSER).build()) {
             String[] nextLine;
             reader.readNext();
-            int lineNumber = 1;
 
             List<Ticket> tickets = new ArrayList<>();
 
@@ -142,10 +141,9 @@ public class FlightManagerClient {
                 try {
                     flightManager.addFlight(planeModel, flightCode, destination, tickets);
                 } catch (Exception e) {
-                    System.out.println(e.getMessage());
-                    System.out.println("Ignoring flight...");
+                    System.out.println("No model for flight " + flightCode);
                 }
-                //lineNumber++;
+                tickets.clear();
             }
         } catch (IOException e) {
             e.printStackTrace();
