@@ -17,7 +17,6 @@ import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class FlightManagerServiceImpl implements FlightManagerService {
 
@@ -199,40 +198,35 @@ public class FlightManagerServiceImpl implements FlightManagerService {
                     newFlight.getStateLock().unlock();
 
                     // TODO notificaciones
+                    // NOTIFICACIONES
+                    Map<String, List<NotificationHandler>> flightNotifications;
+                    store.getNotificationsLock().lock();
+                    flightNotifications = store.getNotifications().get(cancelled.getCode());
+                    store.getNotificationsLock().unlock();
+
+                    if (flightNotifications == null)
+                        continue;
+
+                    synchronized (flightNotifications) {
+                        flightNotifications.forEach((passenger, handlers) -> {
+                            synchronized (handlers) {
+                                for (NotificationHandler handler : handlers) {
+                                    store.submitNotificationTask(() -> {
+                                        try {
+                                            handler.notifyChangeTicket(cancelled.getCode(), cancelled.getDestination(), newFlight.getCode());
+                                        } catch (RemoteException e) {
+                                            throw new RuntimeException(e); // TODO: excepcion propia
+                                        }
+                                    });
+                                }
+                            }
+                        });
+                    }
+
                 }
             } finally {
                 cancelled.getSeatsLock().unlock();
             }
-
         }
-
-//                // NOTIFICACIONES
-//                Map<String, List<NotificationHandler>> flightNotifications;
-//                store.getNotificationsLock().lock();
-//                flightNotifications = store.getNotifications().get(cancelledFlight.getCode());
-//                store.getNotificationsLock().unlock();
-//
-//                if (flightNotifications == null)
-//                    continue;
-//
-//                synchronized (flightNotifications) {
-//                    flightNotifications.forEach((passenger, handlers) -> {
-//                        synchronized (handlers) {
-//                            for (NotificationHandler handler : handlers) {
-//                                store.submitNotificationTask(() -> {
-//                                    try {
-//                                        handler.notifyChangeTicket(cancelledFlight.getCode(), cancelledFlight.getDestination(), newFlight.getCode());
-//                                    } catch (RemoteException e) {
-//                                        throw new RuntimeException(e); // TODO: excepcion propia
-//                                    }
-//                                });
-//                            }
-//                        }
-//                    });
-//                }
-//            }
-//        }
-
     }
-
 }

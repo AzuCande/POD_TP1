@@ -44,7 +44,7 @@ public class SeatManagerServiceImpl implements SeatManagerService {
     @Override
     public void assign(String flightCode, String passenger, int row, char seat) throws RemoteException {
         // TODO: chequear
-         Flight flight;// = validateFlightCode(flightCode);
+        Flight flight;// = validateFlightCode(flightCode);
 
         synchronized (store.getPendingFlights()) {
             flight = Optional.ofNullable(store.getPendingFlights().get(flightCode))
@@ -151,47 +151,80 @@ public class SeatManagerServiceImpl implements SeatManagerService {
 
     @Override
     public void changeFlight(String passenger, String oldFlightCode, String newFlightCode) throws RemoteException {
-        /*
         Flight oldFlight;
-        synchronized (store.getFlightCodes()) {
-            FlightState state = Optional.ofNullable(store.getFlightCodes().get(flightCode))
-                    .orElseThrow(FlightNotFoundException::new);
+        Flight newFlight;
+//            FlightState state = Optional.ofNullable(store.getFlightCodes().get(flightCode))
+//                    .orElseThrow(FlightNotFoundException::new);
+//
+//            synchronized (store.getFlightsByState(state)) {
+//                return Optional.ofNullable(store.getFlightsByState(state).get(flightCode))
+//                        .orElseThrow(FlightNotFoundException::new);
+//            }
 
-            synchronized (store.getFlightsByState(state)) {
-                return Optional.ofNullable(store.getFlightsByState(state).get(flightCode))
-                        .orElseThrow(FlightNotFoundException::new);
-            }
-        }
-        Flight oldFlight = Optional.ofNullable(store.getFlight(oldFlightCode))
-                .filter(f -> !f.getState().equals(FlightState.CONFIRMED))
-                .orElseThrow(FlightNotFoundException::new);
+        /*
+        old flight que no sea confirm
+        lock del estado del old+ asientos
 
-        Flight newFlight = Optional.ofNullable(store.getFlight(newFlightCode))
-                .filter(f -> f.getState().equals(FlightState.PENDING))
-                .orElseThrow(FlightNotFoundException::new);
-
-        Lock[] locks = Stream.of(oldFlight, newFlight)
-                .sorted(Comparator.comparing(Flight::getCode))
-                .map(Flight::getStateLock)
-                .toArray(Lock[]::new);
-
-        locks[0].lock();
-        locks[1].lock();
-
-        oldFlight.changeFlight(passenger, newFlight);
-
-        locks[1].unlock();
-        locks[0].unlock();
-
-        syncNotify(oldFlightCode, passenger, handler -> {
-            try {
-                handler.notifyChangeTicket(oldFlightCode, oldFlight.getDestination(), newFlightCode);
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-        });
-        
+        lo mismo con el nuevo y tiene que estar pending.
          */
+
+        store.getFlightsLock().lock();
+        try {
+            oldFlight = Optional.ofNullable(store.getFlight(oldFlightCode))
+                    .filter(f -> !f.getState().equals(FlightState.CONFIRMED))
+                    .orElseThrow(FlightNotFoundException::new);
+        } finally {
+            store.getFlightsLock().unlock();
+        }
+
+        oldFlight.getStateLock().lock();
+        oldFlight.getSeatsLock().lock();
+
+        try {
+            synchronized (store.getPendingFlights()) {
+                newFlight = Optional.ofNullable(store.getPendingFlights().get(newFlightCode)).orElseThrow(FlightNotFoundException::new);
+                newFlight.getStateLock().lock();
+                newFlight.getSeatsLock().lock();
+            }
+            oldFlight.changeFlight(passenger, newFlight);
+
+            newFlight.getSeatsLock().unlock();
+            newFlight.getStateLock().unlock();
+
+        } finally {
+            oldFlight.getSeatsLock().unlock();
+            oldFlight.getStateLock().unlock();
+        }
+
+
+
+
+//        Flight newFlight = Optional.ofNullable(store.getFlight(newFlightCode))
+//                .filter(f -> f.getState().equals(FlightState.PENDING))
+//                .orElseThrow(FlightNotFoundException::new);
+//
+//        Lock[] locks = Stream.of(oldFlight, newFlight)
+//                .sorted(Comparator.comparing(Flight::getCode))
+//                .map(Flight::getStateLock)
+//                .toArray(Lock[]::new);
+//
+//
+//        locks[0].lock();
+//        locks[1].lock();
+//
+//        oldFlight.changeFlight(passenger, newFlight);
+//
+//        locks[1].unlock();
+//        locks[0].unlock();
+//
+//        syncNotify(oldFlightCode, passenger, handler -> {
+//            try {
+//                handler.notifyChangeTicket(oldFlightCode, oldFlight.getDestination(), newFlightCode);
+//            } catch (RemoteException e) {
+//                e.printStackTrace();
+//            }
+//        });
+//
 
     }
 
