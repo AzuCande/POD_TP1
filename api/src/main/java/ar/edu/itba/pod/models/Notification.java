@@ -1,6 +1,5 @@
 package ar.edu.itba.pod.models;
 
-import com.sun.rowset.internal.Row;
 
 import java.io.Serializable;
 
