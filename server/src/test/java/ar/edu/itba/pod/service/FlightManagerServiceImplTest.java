@@ -2,6 +2,7 @@ package ar.edu.itba.pod.service;
 
 import ar.edu.itba.pod.assets.TestConstants;
 import ar.edu.itba.pod.models.FlightState;
+import ar.edu.itba.pod.models.exceptions.flightExceptions.IllegalFlightStateException;
 import ar.edu.itba.pod.models.exceptions.flightExceptions.ModelAlreadyExistsException;
 import ar.edu.itba.pod.server.ServerStore;
 import ar.edu.itba.pod.server.models.Flight;
@@ -95,7 +96,7 @@ public class FlightManagerServiceImplTest {
         assertEquals(TestConstants.ROWS_NUM_1, actualFlight.getRows().length);
     }
 
-    @Test
+    @Test(expected = IllegalFlightStateException.class)
     public void testConfirmFlightWithNonExistentFlight() throws RemoteException {
         flightManagerService.confirmFlight(TestConstants.FLIGHT_CODE_1);
     }
@@ -120,7 +121,7 @@ public class FlightManagerServiceImplTest {
         assertEquals(TestConstants.ROWS_NUM_1, actualFlight.getRows().length);
     }
 
-    @Test
+    @Test(expected = IllegalFlightStateException.class)
     public void testCancelFlightWithNonExistentFlight() throws RemoteException {
         flightManagerService.cancelFlight(TestConstants.FLIGHT_CODE_1);
     }
@@ -148,7 +149,7 @@ public class FlightManagerServiceImplTest {
         assertEquals(TestConstants.FLIGHT_CODE_1, cancelledFlight.getCode());
         assertEquals(TestConstants.FLIGHT_CODE_2, pendingFlight.getCode());
 
-        assertEquals(5, pendingFlight.getTickets().values().size());
+        assertEquals(6, pendingFlight.getTickets().values().size());
     }
 
 //    // TODO: Revisar si va RuntimeException
