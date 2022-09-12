@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-import ar.edu.itba.pod.models.exceptions.planeExceptions.IllegalPlaneException;
+import ar.edu.itba.pod.models.exceptions.flightExceptions.IllegalFlightException;
 
 public class PlaneModel implements Serializable {
     private final String model;
@@ -23,14 +23,14 @@ public class PlaneModel implements Serializable {
         for (Map.Entry<String, int[]> entry : rowCategoryMap.entrySet()) {
             int[] val = entry.getValue();
             if (val[0] < 0 || val[1] < 0 )
-                throw new IllegalPlaneException();
+                throw new IllegalFlightException();
 
             if (val[0] > 0 && val[1] > 0)
                 hasValidRow = true;
         }
 
         if(!hasValidRow)
-            throw new IllegalPlaneException();
+            throw new IllegalFlightException();
     } 
 
     public int[] getCategoryConfig(RowCategory category) {

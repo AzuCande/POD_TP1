@@ -2,6 +2,7 @@ package ar.edu.itba.pod.client;
 
 import ar.edu.itba.pod.client.parsers.FlightManagerParser;
 import ar.edu.itba.pod.interfaces.FlightManagerService;
+import ar.edu.itba.pod.models.ResponseCancelledList;
 import ar.edu.itba.pod.models.RowCategory;
 import ar.edu.itba.pod.models.Ticket;
 import com.opencsv.CSVParserBuilder;
@@ -25,7 +26,7 @@ import java.util.Map;
 
 
 public class FlightManagerClient {
-    private static final Logger logger = LoggerFactory.getLogger(FlightManagerClient.class); // TODO: SymbolError con mvn install
+    private static final Logger logger = LoggerFactory.getLogger(FlightManagerClient.class);
     private static final ICSVParser CSV_PARSER = new CSVParserBuilder().withSeparator(';').build();
 
     public static void main(String[] args) throws MalformedURLException, NotBoundException, RemoteException {
@@ -33,6 +34,7 @@ public class FlightManagerClient {
         parser.parse();
         logger.info("Flight Manager Client Starting ...");
 
+        //TODO: lookup con parser.getServerAddress.get()
         FlightManagerService flightManagerService =
                 (FlightManagerService) Naming.lookup("//127.0.0.1:1099/flightManagerService");
 
@@ -75,7 +77,7 @@ public class FlightManagerClient {
             case RETICKETING:
                 logger.info("Reticketing cancelled flights...");
                 try {
-                    flightManagerService.changeCancelledFlights();
+                    printReticketing(flightManagerService.changeCancelledFlights());
                     System.out.println("Reticketing successful");
                 } catch (Exception e) {
                     System.out.println(e.getMessage());
@@ -150,5 +152,13 @@ public class FlightManagerClient {
         } catch (RuntimeException | CsvValidationException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static void printReticketing(ResponseCancelledList list){
+        System.out.printf("%d tickets were changed\n", list.getChanged());
+        list.getUnchangedTickets().forEach(t -> {
+            System.out.printf("Cannot find alternative flight for %s on Flight %s\n", t.getPassenger(), t.getFlightCode());
+        });
+
     }
 }

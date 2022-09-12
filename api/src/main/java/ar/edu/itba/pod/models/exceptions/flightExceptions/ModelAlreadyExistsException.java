@@ -1,4 +1,4 @@
-package ar.edu.itba.pod.models.exceptions.planeExceptions;
+package ar.edu.itba.pod.models.exceptions.flightExceptions;
 
 public class ModelAlreadyExistsException extends RuntimeException{
 

@@ -54,12 +54,9 @@ public class SeatManagerParser {
         }
 
         passenger = Optional.ofNullable(props.getProperty(PASSENGER));
-        String auxRow = props.getProperty(ROW);
 
-        //TODO: para changeTicket no hace falta la columna ni el row
-//        if(!SeatActions.CHANGE_TICKET.equals(action.orElse(null)) || !SeatActions.ALTERNATIVES.equals(action.orElse(null)))
-        column = Optional.ofNullable(props.getProperty(COLUMN).charAt(0));
-        originalFlightCode = Optional.ofNullable(props.getProperty(ORIGINAL_FLIGHT));
+        Optional<String> col = Optional.of(props.getProperty(COLUMN));
+        col.ifPresent(s -> column = Optional.of(s.charAt(0)));
 
         if (SeatActions.STATUS.equals(action.orElse(null)) || SeatActions.ASSIGN.equals(action.orElse(null)) ||
                 SeatActions.MOVE.equals(action.orElse(null))) {

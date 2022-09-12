@@ -27,6 +27,7 @@ public class SeatQueryClient {
 
         logger.info("Flight Notifications Client Starting ...");
 
+        //TODO: lookup con parser.getServerAddress.get()
         SeatQueryService service = (SeatQueryService) Naming.lookup("//127.0.0.1:1099/seatQueryService");
 
         ArrayList<ResponseRow> rows = null;

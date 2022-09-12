@@ -1,15 +1,17 @@
 package ar.edu.itba.pod.models.exceptions.seatExceptions;
 
 public class SeatAlreadyTakenException extends RuntimeException {
+    private int row;
     private char seat;
 
-    public SeatAlreadyTakenException(char seat) {
+    public SeatAlreadyTakenException(int row, char seat) {
         super();
+        this.row = row;
         this.seat = seat;
     }
 
     @Override
     public String getMessage() {
-        return "Seat " + seat + " is already taken";
+        return "Seat " + row + " " + seat + " is already taken";
     }
 }

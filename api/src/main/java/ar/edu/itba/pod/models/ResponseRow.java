@@ -5,7 +5,7 @@ import java.io.Serializable;
 public class ResponseRow implements Serializable {
 
     private final RowCategory rowCategory;
-    private final char[] passengerInitials; // TODO modelo de esto en base a la concurrencia
+    private final char[] passengerInitials;
 
     public ResponseRow(RowCategory rowCategory, char[] passengerInitials) {
         this.rowCategory = rowCategory;

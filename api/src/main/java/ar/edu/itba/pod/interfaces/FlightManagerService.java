@@ -19,5 +19,5 @@ public interface FlightManagerService extends Remote {
 
     void cancelFlight(String flightCode) throws RemoteException;
 
-    void changeCancelledFlights() throws RemoteException;
+    ResponseCancelledList changeCancelledFlights() throws RemoteException;
 }

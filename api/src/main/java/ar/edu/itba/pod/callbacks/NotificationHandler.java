@@ -1,26 +1,19 @@
 package ar.edu.itba.pod.callbacks;
 
-import ar.edu.itba.pod.models.FlightState;
-import ar.edu.itba.pod.models.RowCategory;
-
+import ar.edu.itba.pod.models.Notification;
 import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 public interface NotificationHandler extends Remote {
-    void notifyRegister(String flightCode, String destination, RowCategory category,
-                        int row, char col) throws RemoteException; //OK
-    void notifyCancelFlight(String flightCode, String destination, FlightState state,
-                                 RowCategory category, int row, char col) throws RemoteException; //OK
+    void notifyRegister(Notification notification) throws RemoteException; //OK
+    void notifyCancelFlight(Notification notification) throws RemoteException; //OK
 
-    void notifyConfirmFlight(String flightCode, String destination, FlightState state,
-                                 RowCategory category, int row, char col) throws RemoteException; //OK
+    void notifyConfirmFlight(Notification notification) throws RemoteException; //OK
 
-    void notifyAssignSeat(String flightCode, String destination, RowCategory category,
-                          int row, char col) throws RemoteException; //OK
+    void notifyAssignSeat(Notification notification) throws RemoteException; //OK
 
-    void notifyChangeSeat(String flightCode, String destination, RowCategory category,
-                          int row, char col, RowCategory newCategory, int newRow, char newCol ) throws RemoteException;
+    void notifyChangeSeat(Notification notification) throws RemoteException;
 
-    void notifyChangeTicket(String flightCode, String destination, String newFlightCode) throws RemoteException; //OK
+    void notifyChangeTicket(Notification notification) throws RemoteException; //OK
 
 }

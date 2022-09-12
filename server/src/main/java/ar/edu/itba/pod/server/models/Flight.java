@@ -7,7 +7,7 @@ import ar.edu.itba.pod.models.Ticket;
 import ar.edu.itba.pod.models.exceptions.IllegalPassengerCategoryException;
 import ar.edu.itba.pod.models.exceptions.IllegalRowException;
 import ar.edu.itba.pod.models.exceptions.PassengerAlreadySeatedException;
-import ar.edu.itba.pod.models.exceptions.planeExceptions.IllegalPlaneStateException;
+import ar.edu.itba.pod.models.exceptions.notFoundExceptions.TicketNotFoundException;
 import ar.edu.itba.pod.models.exceptions.seatExceptions.InvalidSeatException;
 import ar.edu.itba.pod.models.exceptions.seatExceptions.SeatAlreadyTakenException;
 
@@ -94,18 +94,17 @@ public class Flight {
 
     public void assignSeat(int rowNumber, char seat, String passenger) {
         if (!tickets.containsKey(passenger))
-            throw new InvalidSeatException(seat); // TODO: otra excepcion
+            throw new TicketNotFoundException();
         checkValidRow(rowNumber);
 
         Row row = rows[rowNumber];
         row.checkValidSeat(seat);
         if (!row.isAvailable(seat))
-            throw new SeatAlreadyTakenException(seat);// TODO habria que pasarle row tambien
+            throw new SeatAlreadyTakenException(rowNumber, seat);
 
         Ticket ticket = tickets.get(passenger);
-        System.out.println("TICKET:" + ticket);
 
-        if(ticket.isSeated()) {
+        if (ticket.isSeated()) {
             throw new PassengerAlreadySeatedException();
         }
 
@@ -130,30 +129,30 @@ public class Flight {
     }
 
     public void changeFlight(String passenger, Flight other) {
-        //Ticket ticket = tickets.get(passenger); //getTicket(passenger);
         Ticket ticket = tickets.remove(passenger);
         if (ticket.isSeated()) {
             int row = ticket.getRow();
-            rows[row].removePassenger(passenger); // TODO check eficiencia
+            rows[row].removePassenger(passenger);
             availableSeats[rows[row].getRowCategory().ordinal()]++;
         }
         ticket.setSeat(null, null);
-        other.getTickets().put(passenger, ticket); // TODO: check que no lo tenga ya
+
+        other.getTickets().put(passenger, ticket);
     }
 
     public void changeSeat(int freeRow, char freeSeat, String passenger) {
         if (!tickets.containsKey(passenger))
-            throw new InvalidSeatException(freeSeat); // TODO: otra excepcion
+            throw new TicketNotFoundException();
 
         checkValidRow(freeRow);
         Row newRow = rows[freeRow];
         newRow.checkValidSeat(freeSeat);
         if (!newRow.isAvailable(freeSeat))
-            throw new SeatAlreadyTakenException(freeSeat);// TODO habria que pasarle row tambien
+            throw new SeatAlreadyTakenException(freeRow, freeSeat);
         Ticket ticket = getTicket(passenger);
 
-        if (rows[freeRow].getRowCategory().ordinal() > ticket.getCategory().ordinal()) {
-            throw new IllegalPassengerCategoryException(); // TODO modularizar
+        if (rows[freeRow].getRowCategory().ordinal() > ticket.getCategory().ordinal()) { // TODO modularizar
+            throw new IllegalPassengerCategoryException();
         }
 
         Row oldRow = rows[ticket.getRow()];

@@ -1,7 +1,6 @@
 package ar.edu.itba.pod.models;
 
 import java.io.Serializable;
-import java.util.Objects;
 
 public class Ticket implements Serializable, Comparable<Ticket> {
     private final RowCategory category;
