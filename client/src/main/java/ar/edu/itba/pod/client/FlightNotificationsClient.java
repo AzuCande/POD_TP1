@@ -37,6 +37,11 @@ public class FlightNotificationsClient {
         NotificationService notificationService = (NotificationService) Naming.lookup("//" +
                 parser.getServerAddress() + "/notificationService");
 
-        notificationService.registerPassenger(parser.getFlight(), parser.getPassenger(), notificationHandler);
+        try {
+            notificationService.registerPassenger(parser.getFlight(), parser.getPassenger(), notificationHandler);
+        } catch (Exception e) { // TODO: Catch specific exceptions
+            logger.error("Error registering passenger", e);
+            UnicastRemoteObject.unexportObject(notificationHandler, true);
+        }
     }
 }

@@ -96,6 +96,12 @@ public class ServerStore {
         return lockHandlers(flightCode, notifications -> notifications.remove(passenger));
     }
 
+    public void removeFlightNotifications(String flightCode) {
+        notificationsLock.lock();
+        notifications.remove(flightCode);
+        notificationsLock.unlock();
+    }
+
     private List<NotificationHandler> lockHandlers(
             String flightCode,
             Function<Map<String, List<NotificationHandler>>, List<NotificationHandler>> getter) {

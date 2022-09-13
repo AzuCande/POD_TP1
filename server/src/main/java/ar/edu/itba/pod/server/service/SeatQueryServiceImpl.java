@@ -11,15 +11,12 @@ import ar.edu.itba.pod.server.models.Row;
 import ar.edu.itba.pod.server.utils.ServerStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.rmi.RemoteException;
 import java.util.*;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class SeatQueryServiceImpl implements SeatQueryService {
-
     private final ServerStore store;
     private static final Logger LOGGER = LoggerFactory.getLogger(SeatQueryServiceImpl.class);
 

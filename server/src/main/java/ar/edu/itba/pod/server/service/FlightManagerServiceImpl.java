@@ -135,6 +135,7 @@ public class FlightManagerServiceImpl implements FlightManagerService {
                                 switch (state) {
                                     case CONFIRMED:
                                         handler.notifyConfirmFlight(notification);
+                                        store.removeFlightNotifications(flightCode);
                                         break;
                                     case CANCELED:
                                         handler.notifyCancelFlight(notification);

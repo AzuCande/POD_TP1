@@ -4,6 +4,7 @@ import ar.edu.itba.pod.callbacks.NotificationHandler;
 import ar.edu.itba.pod.models.Notification;
 
 import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
 
 public class NotificationHandlerImpl implements NotificationHandler {
     //You are following Flight AA100 with destination JFK.
@@ -28,6 +29,8 @@ public class NotificationHandlerImpl implements NotificationHandler {
         }
 
         System.out.println(response);
+
+        UnicastRemoteObject.unexportObject(this, true);
     }
 
     //Your seat changed to BUSINESS 2C from BUSINESS 1B for Flight AA100 with destination JFK.
