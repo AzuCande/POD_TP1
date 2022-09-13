@@ -10,7 +10,6 @@ import ar.edu.itba.pod.server.utils.ServerStore;
 import ar.edu.itba.pod.server.models.Flight;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.rmi.RemoteException;
 import java.util.*;
 import java.util.function.Consumer;
@@ -211,39 +210,10 @@ public class SeatManagerServiceImpl implements SeatManagerService {
         Notification notification = new Notification(oldFlightCode, oldFlight.getDestination(),
                 newFlightCode);
 
-        List<NotificationHandler> notificationHandlers = store.changeFlightNotifications(
-                notification, passenger);
-
-        synchronized (notificationHandlers) {
-            notificationHandlers.forEach(handler -> {
-                store.submitNotificationTask(() -> {
-                    try {
-                        handler.notifyChangeTicket(notification);
-                    } catch (RemoteException e) {
-                        LOGGER.info("Could not notify");
-                    }
-                });
-            });
-        }
-
-        store.registerUser(new Notification(notification.getNewCode(),
-                notification.getDestination()), passenger, notificationHandlers);
+        store.changeTicketsNotification(passenger, notification);
     }
 
     private void syncNotify(String flightCode, String passenger, Consumer<NotificationHandler> handlerConsumer) {
-//        Map<String, List<NotificationHandler>> flightNotifications = store
-//                .getFlightNotifications(flightCode);
-//
-//        if (flightNotifications == null)
-//            return;
-//
-//        List<NotificationHandler> handlers;
-//        synchronized (flightNotifications) {
-//            handlers = flightNotifications.get(passenger);
-//        }
-//
-//        if (handlers == null)
-//            return;
         List<NotificationHandler> handlers = store.getHandlers(flightCode, passenger);
 
         synchronized (handlers) {

@@ -84,35 +84,45 @@ public class Flight {
 
     public boolean checkSeat(int row, char seat) {
         checkValidRow(row);
-        /*
-        if (state != FlightState.PENDING) {
-            throw new IllegalPlaneStateException();
-        }
-         */
         return rows[row].isAvailable(seat);
     }
 
     public void assignSeat(int rowNumber, char seat, String passenger) {
-        if (!tickets.containsKey(passenger))
-            throw new TicketNotFoundException();
-        checkValidRow(rowNumber);
-
-        Row row = rows[rowNumber];
-        row.checkValidSeat(seat);
-        if (!row.isAvailable(seat))
-            throw new SeatAlreadyTakenException(rowNumber, seat);
-
-        Ticket ticket = tickets.get(passenger);
+        Ticket ticket = checkValidSeat(passenger, rowNumber, seat);
 
         if (ticket.isSeated()) {
             throw new PassengerAlreadySeatedException();
         }
 
-        if (rows[rowNumber].getRowCategory().ordinal() > ticket.getCategory().ordinal()) {
+        seatPassenger(rowNumber, seat, ticket);
+    }
+
+    public void changeSeat(int freeRow, char freeSeat, String passenger) {
+        Ticket ticket = checkValidSeat(passenger, freeRow, freeSeat);
+        Row oldRow = rows[ticket.getRow()];
+        oldRow.removePassenger(passenger);
+        ticket.setSeat(null, null);
+        availableSeats[oldRow.getRowCategory().ordinal()]++;
+        seatPassenger(freeRow, freeSeat, ticket);
+    }
+
+    private Ticket checkValidSeat(String passenger, int row, char seat) {
+        if (!tickets.containsKey(passenger))
+            throw new TicketNotFoundException();
+
+        checkValidRow(row);
+        Row newRow = rows[row];
+        newRow.checkValidSeat(seat);
+        if (!newRow.isAvailable(seat))
+            throw new SeatAlreadyTakenException(row, seat);
+
+        Ticket ticket = getTicket(passenger);
+
+        if (rows[row].getRowCategory().ordinal() > ticket.getCategory().ordinal()) {
             throw new IllegalPassengerCategoryException();
         }
 
-        seatPassenger(rowNumber, seat, ticket);
+        return ticket;
     }
 
     private void seatPassenger(int rowNumber, char seat, Ticket ticket) {
@@ -140,33 +150,14 @@ public class Flight {
         other.getTickets().put(passenger, ticket);
     }
 
-    public void changeSeat(int freeRow, char freeSeat, String passenger) {
-        if (!tickets.containsKey(passenger))
-            throw new TicketNotFoundException();
 
-        checkValidRow(freeRow);
-        Row newRow = rows[freeRow];
-        newRow.checkValidSeat(freeSeat);
-        if (!newRow.isAvailable(freeSeat))
-            throw new SeatAlreadyTakenException(freeRow, freeSeat);
-        Ticket ticket = getTicket(passenger);
-
-        if (rows[freeRow].getRowCategory().ordinal() > ticket.getCategory().ordinal()) { // TODO modularizar
-            throw new IllegalPassengerCategoryException();
-        }
-
-        Row oldRow = rows[ticket.getRow()];
-        oldRow.removePassenger(passenger);
-        ticket.setSeat(null, null);
-        availableSeats[oldRow.getRowCategory().ordinal()]++;
-        seatPassenger(freeRow, freeSeat, ticket);
-    }
 
     public int getAvailableByCategory(RowCategory category) {
         int toReturn;
-
         stateLock.lock();
+        seatsLock.lock();
         toReturn = availableSeats[category.ordinal()];
+        seatsLock.unlock();
         stateLock.unlock();
 
         return toReturn;
@@ -176,23 +167,20 @@ public class Flight {
     public int getAvailableCategory(RowCategory category) {
         int toReturn = -1;
         stateLock.lock();
+        seatsLock.lock();
         for (int i = category.ordinal(); i >= 0; i--) {
             if (availableSeats[i] > 0) {
                 toReturn = i;
                 break;
             }
         }
+        seatsLock.unlock();
         stateLock.unlock();
         return toReturn;
     }
 
     public Ticket getTicket(String passenger) {
-        seatsLock.lock();
-        try {
-            return tickets.get(passenger);
-        } finally {
-            seatsLock.unlock();
-        }
+        return tickets.get(passenger);
     }
 
     public Row[] getRows() {

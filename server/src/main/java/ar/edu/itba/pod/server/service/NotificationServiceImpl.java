@@ -8,10 +8,8 @@ import ar.edu.itba.pod.models.exceptions.flightExceptions.IllegalFlightStateExce
 import ar.edu.itba.pod.server.models.Flight;
 import ar.edu.itba.pod.models.FlightState;
 import ar.edu.itba.pod.server.utils.ServerStore;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.rmi.RemoteException;
 import java.util.Collections;
 import java.util.Map;

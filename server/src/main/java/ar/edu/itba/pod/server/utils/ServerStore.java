@@ -4,6 +4,7 @@ import ar.edu.itba.pod.callbacks.NotificationHandler;
 import ar.edu.itba.pod.models.*;
 import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundException;
 import ar.edu.itba.pod.server.models.Flight;
+import org.slf4j.Logger;
 
 import java.rmi.RemoteException;
 import java.security.Provider;
@@ -78,21 +79,6 @@ public class ServerStore {
         return notifications;
     }
 
-    public List<NotificationHandler> changeFlightNotifications(Notification notification,
-                                                               String passenger) {
-        List<NotificationHandler> toReturn = popHandlers(notification.getOldCode(), passenger);
-
-        /*
-        if (!toReturn.isEmpty()) {
-            notification.setOldCode(notification.getNewCode());
-            registerUser(notification, passenger, toReturn);
-        }
-
-         */
-
-        return toReturn;
-    }
-
     public Map<String, List<NotificationHandler>> getFlightNotifications(String flightCode) {
         return lockFlightNotifications(() -> notifications.get(flightCode));
     }
@@ -139,6 +125,23 @@ public class ServerStore {
 
         notificationsLock.unlock();
         return toReturn;
+    }
+
+    public void changeTicketsNotification(String passenger, Notification notification) {
+        List<NotificationHandler> notificationHandlers = popHandlers(notification.getOldCode(), passenger);
+
+        synchronized (notificationHandlers) {
+            notificationHandlers.forEach(handler -> submitNotificationTask(() -> {
+                try {
+                    handler.notifyChangeTicket(notification);
+                } catch (RemoteException e) {
+                    //logger.info("Could not notify");
+                }
+            }));
+        }
+
+        registerUser(new Notification(notification.getNewCode(),
+                notification.getDestination()), passenger, notificationHandlers);
     }
 
     public Lock getNotificationsLock() {

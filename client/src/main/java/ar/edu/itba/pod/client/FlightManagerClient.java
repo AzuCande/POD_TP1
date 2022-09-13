@@ -5,12 +5,12 @@ import ar.edu.itba.pod.interfaces.FlightManagerService;
 import ar.edu.itba.pod.models.ResponseCancelledList;
 import ar.edu.itba.pod.models.RowCategory;
 import ar.edu.itba.pod.models.Ticket;
-import ar.edu.itba.pod.models.exceptions.flightExceptions.IllegalFlightException;
+import ar.edu.itba.pod.models.exceptions.flightExceptions.FlightAlreadyExistsException;
+import ar.edu.itba.pod.models.exceptions.flightExceptions.IllegalPlaneException;
 import ar.edu.itba.pod.models.exceptions.flightExceptions.IllegalFlightStateException;
 import ar.edu.itba.pod.models.exceptions.flightExceptions.ModelAlreadyExistsException;
 import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundException;
 import ar.edu.itba.pod.models.exceptions.notFoundExceptions.ModelNotFoundException;
-import ar.edu.itba.pod.models.exceptions.notFoundExceptions.TicketNotFoundException;
 import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
@@ -73,7 +73,7 @@ public class FlightManagerClient {
                     System.out.println("Reticketing successful");
                     break;
             }
-        } catch (FlightNotFoundException | IllegalFlightException | IllegalFlightStateException e) {
+        } catch (FlightNotFoundException | IllegalPlaneException | IllegalFlightStateException e) {
             System.out.println(e.getMessage());
         }
 
@@ -99,8 +99,8 @@ public class FlightManagerClient {
                 }
                 try {
                     flightManagerService.addPlaneModel(planeModel, map);
-                } catch (IllegalFlightException | ModelAlreadyExistsException e) {
-                    System.out.println(e.getMessage()); //TODO: IllegalFlightEXception refactor a IllegalPlaneException
+                } catch (IllegalPlaneException | ModelAlreadyExistsException e) {
+                    System.out.println(e.getMessage());
                     System.out.println("Ignoring model");
                 }
             }
@@ -134,7 +134,7 @@ public class FlightManagerClient {
                 }
                 try {
                     flightManager.addFlight(planeModel, flightCode, destination, tickets);
-                } catch (ModelNotFoundException e) { //TODO: crear FlightALreadyExistsException
+                } catch (ModelNotFoundException | FlightAlreadyExistsException e) {
                     System.out.println(e.getMessage());
                 }
                 tickets.clear();

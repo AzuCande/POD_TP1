@@ -17,6 +17,8 @@ import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class SeatQueryClient {
     private static final Logger logger = LoggerFactory.getLogger(SeatQueryClient.class);
@@ -29,7 +31,7 @@ public class SeatQueryClient {
 
         SeatQueryService service = (SeatQueryService) Naming.lookup("//" + parser.getServerAddress() + "/seatQueryService");
 
-        ArrayList<ResponseRow> rows = null;
+        List<ResponseRow> rows = null;
 
         try {
             if (parser.getRow().isPresent() && parser.getCategory().isPresent()) {
@@ -37,8 +39,7 @@ public class SeatQueryClient {
                 System.exit(1);
 
             } else if (parser.getRow().isPresent()) {
-                rows = new ArrayList<>();
-                rows.add(parser.getRow().get(), service.query(parser.getFlight(), parser.getRow().get()));
+                rows = Collections.singletonList(service.query(parser.getFlight(), parser.getRow().get()));
 
             } else if (parser.getCategory().isPresent()) {
                 rows = service.query(parser.getFlight(), parser.getCategory().get());
@@ -52,7 +53,7 @@ public class SeatQueryClient {
         }
     }
 
-    public static void writeToCSV(ArrayList<ResponseRow> rows, String path) {
+    public static void writeToCSV(List<ResponseRow> rows, String path) {
         File file = new File(path);
         try {
 

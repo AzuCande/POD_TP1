@@ -2,6 +2,7 @@ package ar.edu.itba.pod.server.service;
 
 import ar.edu.itba.pod.callbacks.NotificationHandler;
 import ar.edu.itba.pod.models.*;
+import ar.edu.itba.pod.models.exceptions.flightExceptions.FlightAlreadyExistsException;
 import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundException;
 import ar.edu.itba.pod.interfaces.FlightManagerService;
 import ar.edu.itba.pod.models.exceptions.flightExceptions.IllegalFlightStateException;
@@ -57,7 +58,7 @@ public class FlightManagerServiceImpl implements FlightManagerService {
 
         synchronized (store.getFlightCodes()) {
             if (store.getFlightCodes().containsKey(flightCode))
-                throw new RuntimeException();
+                throw new FlightAlreadyExistsException();
 
             synchronized (store.getPendingFlights()) {
                 store.getPendingFlights().put(flightCode, new Flight(model, flightCode,
@@ -108,14 +109,12 @@ public class FlightManagerServiceImpl implements FlightManagerService {
         flight.getStateLock().unlock();
         LOGGER.info("Flight " + flightCode + " state changed to " + state);
 
-        // TODO: modularizar notis y mandar todo esto a un thread aparte
         Map<String, List<NotificationHandler>> flightNotifications = store
                 .getFlightNotifications(flightCode);
-
         if (flightNotifications == null)
             return;
 
-        synchronized (flightNotifications) {
+        synchronized (flightNotifications) { // Too specific to modularize
             flightNotifications.forEach((passenger, handlers) -> {
                 synchronized (handlers) {
                     flight.getSeatsLock().lock();
@@ -170,7 +169,7 @@ public class FlightManagerServiceImpl implements FlightManagerService {
             changedCounter += reticketCancelledFlight(cancelled, unchangedTickets, notificationsToSend);
         }
 
-        notificationsToSend.forEach(this::sendNotification);
+        notificationsToSend.forEach(store::changeTicketsNotification);
         return new ResponseCancelledList(changedCounter, unchangedTickets);
     }
 
@@ -213,26 +212,7 @@ public class FlightManagerServiceImpl implements FlightManagerService {
         } finally {
             cancelled.getSeatsLock().unlock();
         }
+
         return toReturn;
-    }
-
-    private void sendNotification(String passenger, Notification notification) {
-        List<NotificationHandler> notificationHandlers = store.changeFlightNotifications(notification,
-                passenger);
-
-        synchronized (notificationHandlers) {
-            notificationHandlers.forEach(handler -> {
-                store.submitNotificationTask(() -> {
-                    try {
-                        handler.notifyChangeTicket(notification);
-                    } catch (RemoteException e) {
-                        LOGGER.info("Could not notify");
-                    }
-                });
-            });
-        }
-
-        store.registerUser(new Notification(notification.getNewCode(),
-                notification.getDestination()), passenger, notificationHandlers);
     }
 }

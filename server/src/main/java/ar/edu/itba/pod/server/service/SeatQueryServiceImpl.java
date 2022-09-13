@@ -1,19 +1,21 @@
 package ar.edu.itba.pod.server.service;
 
 import ar.edu.itba.pod.interfaces.SeatQueryService;
-import ar.edu.itba.pod.models.*;
+import ar.edu.itba.pod.models.FlightState;
+import ar.edu.itba.pod.models.ResponseRow;
+import ar.edu.itba.pod.models.RowCategory;
 import ar.edu.itba.pod.models.exceptions.IllegalRowException;
-import ar.edu.itba.pod.models.exceptions.flightExceptions.IllegalFlightStateException;
 import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundException;
-import ar.edu.itba.pod.server.utils.ServerStore;
 import ar.edu.itba.pod.server.models.Flight;
 import ar.edu.itba.pod.server.models.Row;
-
+import ar.edu.itba.pod.server.utils.ServerStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.rmi.RemoteException;
 import java.util.*;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class SeatQueryServiceImpl implements SeatQueryService {
@@ -26,48 +28,46 @@ public class SeatQueryServiceImpl implements SeatQueryService {
     }
 
     @Override
-    public ArrayList<ResponseRow> query(String flightCode) throws RemoteException {
-        Flight flight = getFlight(flightCode);
-        ArrayList<ResponseRow> responseRows = new ArrayList<>();
-        flight.getSeatsLock().lock();
-        Row[] rows = flight.getRows();
-        for (Row row : rows) {
-            responseRows.add(new ResponseRow(row.getRowCategory(), getPassengerInitials(row)));
-        }
-        flight.getSeatsLock().unlock();
+    public List<ResponseRow> query(String flightCode) throws RemoteException {
+        List<ResponseRow> toReturn = createResponse(flightCode, f -> Arrays.asList(f.getRows()));
         LOGGER.info("Seat map query made for flight " + flightCode);
-        return responseRows;
+        return toReturn;
     }
 
     @Override
-    public ArrayList<ResponseRow> query(String flightCode, RowCategory rowCategory) throws RemoteException {
-        Flight flight = getFlight(flightCode);
-        ArrayList<ResponseRow> responseRows = new ArrayList<>();
-        flight.getSeatsLock().lock();
-        List<Row> rows = Arrays.stream(getFlight(flightCode).getRows())
-                .filter(row -> row.getRowCategory() == rowCategory).collect(Collectors.toList());
-
-        for (Row row : rows) {
-            responseRows.add(new ResponseRow(row.getRowCategory(), getPassengerInitials(row)));
-        }
-        flight.getSeatsLock().unlock();
+    public List<ResponseRow> query(String flightCode, RowCategory rowCategory) throws RemoteException {
+        List<ResponseRow> toReturn = createResponse(flightCode, (flight) -> Arrays.stream(flight
+                        .getRows()).filter(row -> row.getRowCategory() == rowCategory)
+                .collect(Collectors.toList()));
         LOGGER.info("Seat map query made for " + rowCategory + " on flight " + flightCode);
-        return responseRows;
+        return toReturn;
     }
 
     @Override
     public ResponseRow query(String flightCode, int rowNum) throws RemoteException {
         Flight flight = getFlight(flightCode);
         flight.getSeatsLock().lock();
-        Row row;
+
+        List<ResponseRow> toReturn = createResponse(flightCode, f -> Collections.singletonList(Optional
+                .ofNullable(f.getRows()[rowNum])
+                .orElseThrow(() -> new IllegalRowException(rowNum))));
+        LOGGER.info("Seat map query made for row " + rowNum + " on flight " + flightCode);
+        return toReturn.stream().findFirst().orElseThrow(() -> new IllegalRowException(rowNum));
+    }
+
+    public List<ResponseRow> createResponse(String flightCode, Function<Flight, List<Row>> supplier) {
+        Flight flight = getFlight(flightCode);
+        List<ResponseRow> responseRows = new ArrayList<>();
+        flight.getSeatsLock().lock();
         try {
-            row = Optional.ofNullable(getFlight(flightCode).getRows()[rowNum])
-                    .orElseThrow(() -> new IllegalRowException(rowNum));
+            List<Row> rows = supplier.apply(flight);
+            for (Row row : rows) {
+                responseRows.add(new ResponseRow(row.getRowCategory(), getPassengerInitials(row)));
+            }
         } finally {
             flight.getSeatsLock().unlock();
         }
-        LOGGER.info("Seat map query made for row " + rowNum + " on flight " + flightCode);
-        return new ResponseRow(row.getRowCategory(), getPassengerInitials(row));
+        return responseRows;
     }
 
     private Flight getFlight(String flightCode) {
