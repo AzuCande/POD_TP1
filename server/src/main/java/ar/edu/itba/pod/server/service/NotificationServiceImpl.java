@@ -3,12 +3,11 @@ package ar.edu.itba.pod.server.service;
 import ar.edu.itba.pod.callbacks.NotificationHandler;
 import ar.edu.itba.pod.interfaces.NotificationService;
 import ar.edu.itba.pod.models.Notification;
-import ar.edu.itba.pod.models.Ticket;
 import ar.edu.itba.pod.models.exceptions.PassengerNotSeatedException;
 import ar.edu.itba.pod.models.exceptions.flightExceptions.IllegalFlightStateException;
 import ar.edu.itba.pod.server.models.Flight;
 import ar.edu.itba.pod.models.FlightState;
-import ar.edu.itba.pod.server.ServerStore;
+import ar.edu.itba.pod.server.utils.ServerStore;
 
 import java.rmi.RemoteException;
 import java.util.Map;

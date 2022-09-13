@@ -6,7 +6,9 @@ import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundExcept
 import ar.edu.itba.pod.interfaces.FlightManagerService;
 import ar.edu.itba.pod.models.exceptions.flightExceptions.IllegalFlightStateException;
 import ar.edu.itba.pod.models.exceptions.flightExceptions.ModelAlreadyExistsException;
-import ar.edu.itba.pod.server.ServerStore;
+import ar.edu.itba.pod.models.exceptions.notFoundExceptions.ModelNotFoundException;
+import ar.edu.itba.pod.server.utils.FlightComparator;
+import ar.edu.itba.pod.server.utils.ServerStore;
 import ar.edu.itba.pod.server.models.Flight;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,7 +50,7 @@ public class FlightManagerServiceImpl implements FlightManagerService {
         modelsLock.lock();
         try {
             model = Optional.of(store.getPlaneModels().get(planeModel))
-                    .orElseThrow(RuntimeException::new);
+                    .orElseThrow(ModelNotFoundException::new);
         } finally {
             modelsLock.unlock();
         }
@@ -68,7 +70,7 @@ public class FlightManagerServiceImpl implements FlightManagerService {
     @Override
     public FlightState getFlightState(String flightCode) throws RemoteException {
         synchronized (store.getFlightCodes()) {
-            return Optional.of(store.getFlightCodes().get(flightCode))
+            return Optional.ofNullable(store.getFlightCodes().get(flightCode))
                     .orElseThrow(FlightNotFoundException::new);
         }
     }
@@ -114,7 +116,7 @@ public class FlightManagerServiceImpl implements FlightManagerService {
         if (flightNotifications == null)
             return;
 
-        synchronized (flightNotifications) { // TODO: preguntar si es excesivo
+        synchronized (flightNotifications) {
             flightNotifications.forEach((passenger, handlers) -> {
                 synchronized (handlers) {
                     flight.getSeatsLock().lock();
@@ -169,19 +171,8 @@ public class FlightManagerServiceImpl implements FlightManagerService {
                 List<Ticket> tickets = cancelled.getTickets().values().stream()
                         .sorted(Comparator.naturalOrder()).collect(Collectors.toList());
 
-                // TODO en el informe: seat lock es obligatorio porque pueden cambiar tickets individuales
                 for (Ticket ticket : tickets) {
-                    Comparator<Flight> comparator = (flight1, flight2) -> {
-                        int cat1 = flight1.getAvailableCategory(ticket.getCategory());
-                        int cat2 = flight2.getAvailableCategory(ticket.getCategory());
-                        if (cat1 != cat2)
-                            return cat2 - cat1;
-
-                        RowCategory category = RowCategory.values()[cat1];
-
-                        return flight2.getAvailableByCategory(category) - flight1.getAvailableByCategory(category);
-                    }; // TODO: REFACTOR clase comparator
-
+                    Comparator<Flight> comparator = new FlightComparator(ticket);
                     Flight newFlight;
 
                     synchronized (store.getPendingFlights()) {

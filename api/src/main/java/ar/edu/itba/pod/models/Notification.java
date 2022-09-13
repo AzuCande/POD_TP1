@@ -4,9 +4,9 @@ package ar.edu.itba.pod.models;
 import java.io.Serializable;
 
 public class Notification implements Serializable {
-    private String oldCode;
+    private final String oldCode;
     private String newCode;
-    private String destination;
+    private final String destination;
     private RowCategory oldCategory;
     private RowCategory newCategory;
     private Integer currentRow;

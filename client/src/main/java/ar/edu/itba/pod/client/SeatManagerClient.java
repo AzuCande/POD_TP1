@@ -22,8 +22,8 @@ public class SeatManagerClient {
 
         logger.info("Flight Notifications Client Starting ...");
 
-        //TODO: loockup con parser.getServerAddress.get()
-        SeatManagerService service = (SeatManagerService) Naming.lookup("//127.0.0.1:1099/" + "seatManagerService");
+        SeatManagerService service = (SeatManagerService) Naming.lookup("//" +
+                parser.getServerAddress() + "/seatManagerService");
 
         switch (parser.getAction().get()) {
             case STATUS:

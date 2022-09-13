@@ -1,4 +1,4 @@
-package ar.edu.itba.pod.server;
+package ar.edu.itba.pod.server.utils;
 
 import ar.edu.itba.pod.callbacks.NotificationHandler;
 import ar.edu.itba.pod.models.*;
@@ -47,7 +47,7 @@ public class ServerStore {
         notificationsLock.unlock();
 
         List<NotificationHandler> passengerNotifications;
-        synchronized (flightNotifications) { // TODO: preguntar lo de sync sobre local variable
+        synchronized (flightNotifications) {
             passengerNotifications = flightNotifications
                     .computeIfAbsent(passenger, k -> new ArrayList<>());
         }

@@ -6,7 +6,7 @@ import ar.edu.itba.pod.models.RowCategory;
 import ar.edu.itba.pod.models.exceptions.flightExceptions.IllegalFlightStateException;
 import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundException;
 import ar.edu.itba.pod.models.exceptions.seatExceptions.SeatAlreadyTakenException;
-import ar.edu.itba.pod.server.ServerStore;
+import ar.edu.itba.pod.server.utils.ServerStore;
 import ar.edu.itba.pod.server.service.FlightManagerServiceImpl;
 import ar.edu.itba.pod.server.service.SeatManagerServiceImpl;
 import org.junit.Test;
@@ -75,8 +75,6 @@ public class SeatManagerServiceImplTest {
         seatManagerService.assign(TestConstants.FLIGHT_CODE_3, TestConstants.PASSENGER_3, TestConstants.ROW_1, TestConstants.SEAT_1);
     }
 
-    // TODO: Como pruebo que se cambio de asiento??
-    //  Se suma y se resta availableSeats de la misma categoria
     @Test
     public void testChangeSeatSuccessfully() throws RemoteException {
         flightManagerService.addPlaneModel(TestConstants.PLANE_MODEL_STR_1, TestConstants.SEAT_CATEGORIES);
@@ -85,7 +83,8 @@ public class SeatManagerServiceImplTest {
         seatManagerService.assign(TestConstants.FLIGHT_CODE_1, TestConstants.PASSENGER_4, TestConstants.ROW_5, TestConstants.SEAT_1);
         seatManagerService.changeSeat(TestConstants.FLIGHT_CODE_1, TestConstants.PASSENGER_4, TestConstants.ROW_5, TestConstants.SEAT_2);
 
-
+        assertTrue(seatManagerService.isAvailable(TestConstants.FLIGHT_CODE_1, TestConstants.ROW_5, TestConstants.SEAT_1));
+        assertFalse(seatManagerService.isAvailable(TestConstants.FLIGHT_CODE_1, TestConstants.ROW_5, TestConstants.SEAT_2));
     }
 
     @Test

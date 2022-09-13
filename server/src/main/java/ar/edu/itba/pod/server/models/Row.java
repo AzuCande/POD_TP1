@@ -6,9 +6,9 @@ import ar.edu.itba.pod.models.exceptions.seatExceptions.NoAvailableSeatsExceptio
 import ar.edu.itba.pod.models.exceptions.seatExceptions.SeatAlreadyTakenException;
 
 
-public class Row { // TODO se usa en una interfaz remota?
+public class Row {
     private final RowCategory rowCategory;
-    private final String[] passengerNames; // TODO modelo de esto en base a la concurrencia
+    private final String[] passengerNames;
 
     public Row(RowCategory rowCategory, int seats) {
         this.rowCategory = rowCategory;

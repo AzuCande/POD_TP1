@@ -34,56 +34,43 @@ public class FlightManagerClient {
         parser.parse();
         logger.info("Flight Manager Client Starting ...");
 
-        //TODO: lookup con parser.getServerAddress.get()
         FlightManagerService flightManagerService =
-                (FlightManagerService) Naming.lookup("//127.0.0.1:1099/flightManagerService");
+                (FlightManagerService) Naming.lookup("//" + parser.getServerAddress() + "/flightManagerService");
 
-        // TODO: REFACTOR
-        switch (parser.getAction().get()) {
-            case MODELS:
-                logger.info("Uploading plane models...");
-                FlightManagerClient.readPlaneModels(parser.getPath(), flightManagerService);
-                break;
-            case FLIGHTS:
-                logger.info("Uploading flights...");
-                FlightManagerClient.readFlights(parser.getPath(), flightManagerService);
-                break;
-            case STATUS:
-                logger.info("Checking flight " + parser.getFlightCode() + " status...");
-                try {
+        try {
+            switch (parser.getAction().get()) {
+                case MODELS:
+                    logger.info("Uploading plane models...");
+                    FlightManagerClient.readPlaneModels(parser.getPath(), flightManagerService);
+                    break;
+                case FLIGHTS:
+                    logger.info("Uploading flights...");
+                    FlightManagerClient.readFlights(parser.getPath(), flightManagerService);
+                    break;
+                case STATUS:
+                    logger.info("Checking flight " + parser.getFlightCode() + " status...");
                     System.out.println(flightManagerService.getFlightState(parser.getFlightCode()));
-                } catch (Exception e) {
-                    System.out.println(e.getMessage());
-                }
-                break;
-            case CONFIRM:
-                logger.info("Confirming flight " + parser.getFlightCode() + " ...");
-                try {
+                    break;
+                case CONFIRM:
+                    logger.info("Confirming flight " + parser.getFlightCode() + " ...");
                     flightManagerService.confirmFlight(parser.getFlightCode());
                     System.out.println("Flight confirmed successfully");
-                } catch (Exception e) {
-                    System.out.println(e.getMessage());
-                }
-                break;
-            case CANCEL:
-                logger.info("Canceling flight " + parser.getFlightCode() + " ...");
-                try {
+                    break;
+                case CANCEL:
+                    logger.info("Canceling flight " + parser.getFlightCode() + " ...");
                     flightManagerService.cancelFlight(parser.getFlightCode());
                     System.out.println("Flight cancelled successfully");
-                } catch (Exception e) {
-                    System.out.println(e.getMessage());
-                }
-                break;
-            case RETICKETING:
-                logger.info("Reticketing cancelled flights...");
-                try {
+                    break;
+                case RETICKETING:
+                    logger.info("Reticketing cancelled flights...");
                     printReticketing(flightManagerService.changeCancelledFlights());
                     System.out.println("Reticketing successful");
-                } catch (Exception e) {
-                    System.out.println(e.getMessage());
-                }
-                break;
+                    break;
+            }
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
         }
+
 
     }
 
@@ -154,7 +141,7 @@ public class FlightManagerClient {
         }
     }
 
-    public static void printReticketing(ResponseCancelledList list){
+    public static void printReticketing(ResponseCancelledList list) {
         System.out.printf("%d tickets were changed\n", list.getChanged());
         list.getUnchangedTickets().forEach(t -> {
             System.out.printf("Cannot find alternative flight for %s on Flight %s\n", t.getPassenger(), t.getFlightCode());

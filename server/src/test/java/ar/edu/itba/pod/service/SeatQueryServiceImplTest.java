@@ -3,7 +3,7 @@ package ar.edu.itba.pod.service;
 import ar.edu.itba.pod.assets.TestConstants;
 import ar.edu.itba.pod.models.ResponseRow;
 import ar.edu.itba.pod.models.RowCategory;
-import ar.edu.itba.pod.server.ServerStore;
+import ar.edu.itba.pod.server.utils.ServerStore;
 import ar.edu.itba.pod.server.service.FlightManagerServiceImpl;
 import ar.edu.itba.pod.server.service.SeatManagerServiceImpl;
 import ar.edu.itba.pod.server.service.SeatQueryServiceImpl;

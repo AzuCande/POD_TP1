@@ -4,7 +4,9 @@ import ar.edu.itba.pod.assets.TestConstants;
 import ar.edu.itba.pod.models.FlightState;
 import ar.edu.itba.pod.models.exceptions.flightExceptions.IllegalFlightStateException;
 import ar.edu.itba.pod.models.exceptions.flightExceptions.ModelAlreadyExistsException;
-import ar.edu.itba.pod.server.ServerStore;
+import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundException;
+import ar.edu.itba.pod.models.exceptions.notFoundExceptions.ModelNotFoundException;
+import ar.edu.itba.pod.server.utils.ServerStore;
 import ar.edu.itba.pod.server.models.Flight;
 import ar.edu.itba.pod.server.service.FlightManagerServiceImpl;
 import org.junit.Test;
@@ -51,8 +53,7 @@ public class FlightManagerServiceImplTest {
         assertEquals(TestConstants.ROWS_NUM_1, actualFlight.getRows().length);
     }
 
-    // TODO: Cambiar excepcion
-    @Test(expected = RuntimeException.class)
+    @Test(expected = ModelNotFoundException.class)
     public void testAddFlightWithNonExistentPlaneModel() throws RemoteException {
         flightManagerService.addFlight(TestConstants.PLANE_MODEL_STR_1, TestConstants.FLIGHT_CODE_1, TestConstants.DESTINATION_1, TestConstants.TICKETS_1);
     }
@@ -67,14 +68,13 @@ public class FlightManagerServiceImplTest {
         assertEquals(FlightState.PENDING, actualFlightState);
     }
 
-    // TODO: Ver por qué tira NullPointerException
-//    @Test(expected = FlightNotFoundException.class)
-//    public void testGetFlightStateOfNonExistentFlight() throws RemoteException {
-//        flightManagerService.addPlaneModel(TestConstants.PLANE_MODEL_STR_1, TestConstants.SEAT_CATEGORIES);
-//        flightManagerService.addFlight(TestConstants.PLANE_MODEL_STR_1, TestConstants.FLIGHT_CODE_1, TestConstants.DESTINATION_1, TestConstants.TICKETS_1);
-//
-//        flightManagerService.getFlightState(TestConstants.FLIGHT_CODE_2);
-//    }
+    @Test(expected = FlightNotFoundException.class)
+    public void testGetFlightStateOfNonExistentFlight() throws RemoteException {
+        flightManagerService.addPlaneModel(TestConstants.PLANE_MODEL_STR_1, TestConstants.SEAT_CATEGORIES);
+        flightManagerService.addFlight(TestConstants.PLANE_MODEL_STR_1, TestConstants.FLIGHT_CODE_1, TestConstants.DESTINATION_1, TestConstants.TICKETS_1);
+
+        flightManagerService.getFlightState(TestConstants.FLIGHT_CODE_2);
+    }
 
     @Test
     public void testConfirmFlightSuccessfully() throws RemoteException {
@@ -152,10 +152,9 @@ public class FlightManagerServiceImplTest {
         assertEquals(6, pendingFlight.getTickets().values().size());
     }
 
-//    // TODO: Revisar si va RuntimeException
+    // TODO: Revisar si va RuntimeException
 //    @Test(expected = RuntimeException.class)
 //    public void testChangeCancelledFlightsWithNoCancelledFlights() throws RemoteException {
 //        flightManagerService.changeCancelledFlights();
 //    }
-
 }

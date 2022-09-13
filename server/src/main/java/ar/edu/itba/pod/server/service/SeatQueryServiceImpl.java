@@ -3,7 +3,7 @@ package ar.edu.itba.pod.server.service;
 import ar.edu.itba.pod.interfaces.SeatQueryService;
 import ar.edu.itba.pod.models.*;
 import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundException;
-import ar.edu.itba.pod.server.ServerStore;
+import ar.edu.itba.pod.server.utils.ServerStore;
 import ar.edu.itba.pod.server.models.Flight;
 import ar.edu.itba.pod.server.models.Row;
 

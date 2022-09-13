@@ -6,7 +6,7 @@ import ar.edu.itba.pod.models.*;
 import ar.edu.itba.pod.models.AlternativeFlightResponse;
 import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundException;
 import ar.edu.itba.pod.models.exceptions.flightExceptions.IllegalFlightStateException;
-import ar.edu.itba.pod.server.ServerStore;
+import ar.edu.itba.pod.server.utils.ServerStore;
 import ar.edu.itba.pod.server.models.Flight;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,8 +30,6 @@ public class SeatManagerServiceImpl implements SeatManagerService {
         Flight flight = validateFlightCode(flightCode);
 
         flight.getStateLock().lock();
-        // TODO poner el informe que se podria ser mas granular y solo lockear por row
-        // IGUAL no se podria ya que podrian cambiar el estado
         try {
             return flight.checkSeat(row, seat);
         } finally {
@@ -148,7 +146,7 @@ public class SeatManagerServiceImpl implements SeatManagerService {
         synchronized (store.getPendingFlights()) {
             alternativeFlights = store.getPendingFlights().values().stream()
                     .filter(f -> f.getDestination().equals(destination)).collect(Collectors.toList());
-        } // TODO: ver de lockear el estado de cada uno. Puede ir en el info
+        }
 
         List<AlternativeFlightResponse> toReturn = new ArrayList<>();
 
@@ -205,9 +203,7 @@ public class SeatManagerServiceImpl implements SeatManagerService {
             oldFlight.getStateLock().unlock();
         }
 
-
-
-        // TODO hay que actualizar la lista con el nuevo codigo
+        // TODO: hay que actualizar la lista con el nuevo codigo
         syncNotify(oldFlightCode, passenger, handler -> {
             try {
                 handler.notifyChangeTicket(new Notification(oldFlightCode, oldFlight.getDestination(),
