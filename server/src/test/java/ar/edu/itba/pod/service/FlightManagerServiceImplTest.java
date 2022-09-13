@@ -2,6 +2,7 @@ package ar.edu.itba.pod.service;
 
 import ar.edu.itba.pod.assets.TestConstants;
 import ar.edu.itba.pod.models.FlightState;
+import ar.edu.itba.pod.models.ResponseCancelledList;
 import ar.edu.itba.pod.models.exceptions.flightExceptions.IllegalFlightStateException;
 import ar.edu.itba.pod.models.exceptions.flightExceptions.ModelAlreadyExistsException;
 import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundException;
@@ -152,9 +153,11 @@ public class FlightManagerServiceImplTest {
         assertEquals(6, pendingFlight.getTickets().values().size());
     }
 
-    // TODO: Revisar si va RuntimeException
-//    @Test(expected = RuntimeException.class)
-//    public void testChangeCancelledFlightsWithNoCancelledFlights() throws RemoteException {
-//        flightManagerService.changeCancelledFlights();
-//    }
+    @Test
+    public void testChangeCancelledFlightsWithNoCancelledFlights() throws RemoteException {
+        ResponseCancelledList cancelledList = flightManagerService.changeCancelledFlights();
+
+        assertEquals(0, cancelledList.getChanged());
+        assertEquals(0, cancelledList.getUnchangedTickets().size());
+    }
 }

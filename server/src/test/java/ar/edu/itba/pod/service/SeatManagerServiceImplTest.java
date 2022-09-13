@@ -59,7 +59,7 @@ public class SeatManagerServiceImplTest {
         seatManagerService.assign(TestConstants.FLIGHT_CODE_2, TestConstants.PASSENGER_2, TestConstants.ROW_1, TestConstants.SEAT_1);
     }
 
-    @Test
+    @Test(expected = IllegalFlightStateException.class)
     public void testAssignPassengerWithInvalidFlightState() throws RemoteException {
         flightManagerService.addPlaneModel(TestConstants.PLANE_MODEL_STR_1, TestConstants.SEAT_CATEGORIES);
         flightManagerService.addFlight(TestConstants.PLANE_MODEL_STR_1, TestConstants.FLIGHT_CODE_1, TestConstants.DESTINATION_1, TestConstants.TICKETS_1);
