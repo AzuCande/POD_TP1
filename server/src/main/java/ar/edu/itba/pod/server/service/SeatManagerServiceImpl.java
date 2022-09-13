@@ -205,6 +205,8 @@ public class SeatManagerServiceImpl implements SeatManagerService {
             oldFlight.getStateLock().unlock();
         }
 
+
+
         // TODO hay que actualizar la lista con el nuevo codigo
         syncNotify(oldFlightCode, passenger, handler -> {
             try {

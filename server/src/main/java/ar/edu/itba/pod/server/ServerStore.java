@@ -51,6 +51,7 @@ public class ServerStore {
             passengerNotifications = flightNotifications
                     .computeIfAbsent(passenger, k -> new ArrayList<>());
         }
+
         synchronized (passengerNotifications) {
             passengerNotifications.add(handler);
         }
