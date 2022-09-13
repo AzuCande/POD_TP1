@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TP_PATH=/Users/patrick/Desktop/ITBA/POD/TP1/POD_TP1
+TP_PATH=/Users/srosati/University/POD/POD_TP1
 cd $TP_PATH
 
 mvn clean install

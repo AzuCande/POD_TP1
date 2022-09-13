@@ -39,8 +39,7 @@ public class SeatManagerServiceImpl implements SeatManagerService {
 
     @Override
     public void assign(String flightCode, String passenger, int row, char seat) throws RemoteException {
-        Flight flight;// = validateFlightCode(flightCode);
-
+        Flight flight;
         synchronized (store.getPendingFlights()) {
             flight = Optional.ofNullable(store.getPendingFlights().get(flightCode))
                     .orElseThrow(IllegalFlightStateException::new);
@@ -54,6 +53,9 @@ public class SeatManagerServiceImpl implements SeatManagerService {
             flight.getSeatsLock().unlock();
             flight.getStateLock().unlock();
         }
+
+        LOGGER.info("Assigned seat" + row + seat + " to passenger " + passenger + " on flight " +
+                flightCode);
 
         syncNotify(flightCode, passenger, handler ->
                 store.submitNotificationTask(() -> {
@@ -69,8 +71,7 @@ public class SeatManagerServiceImpl implements SeatManagerService {
 
     @Override
     public void changeSeat(String flightCode, String passenger, int freeRow, char freeSeat) throws RemoteException {
-        Flight flight;// = validateFlightCode(flightCode);
-
+        Flight flight;
         synchronized (store.getPendingFlights()) {
             flight = Optional.ofNullable(store.getPendingFlights().get(flightCode))
                     .orElseThrow(IllegalFlightStateException::new);
@@ -82,19 +83,26 @@ public class SeatManagerServiceImpl implements SeatManagerService {
 
         flight.getSeatsLock().lock();
         try {
-            flight.changeSeat(freeRow, freeSeat, passenger);
             Ticket ticket = flight.getTicket(passenger);
             row = ticket.getRow();
             col = ticket.getCol();
+            flight.changeSeat(freeRow, freeSeat, passenger);
         } finally {
             flight.getSeatsLock().unlock();
             flight.getStateLock().unlock();
         }
 
+        LOGGER.info("Changed " + passenger + " seat from " + row + col + " to " + freeRow +
+                freeSeat + " on flight " + flightCode);
+
         syncNotify(flightCode, passenger, handler -> {
             try {
+                RowCategory category = null;
+                if (row != null)
+                    category = flight.getRows()[row].getRowCategory();
+
                 handler.notifyChangeSeat(new Notification(flightCode, flight.getDestination(),
-                        flight.getRows()[row].getRowCategory(), row, col,
+                        category, row, col,
                         flight.getRows()[freeRow].getRowCategory(),
                         freeRow, freeSeat));
             } catch (RemoteException e) {
@@ -115,9 +123,6 @@ public class SeatManagerServiceImpl implements SeatManagerService {
         }
     }
 
-    // JFK | AA101 | 7 BUSINESS
-// JFK | AA119 | 3 BUSINESS
-// JFK | AA103 | 18 PREMIUM_ECONOMY
     @Override
     public List<AlternativeFlightResponse> listAlternativeFlights(String flightCode, String passenger) throws RemoteException {
         Flight flight;
@@ -203,34 +208,43 @@ public class SeatManagerServiceImpl implements SeatManagerService {
             oldFlight.getStateLock().unlock();
         }
 
-        // TODO: hay que actualizar la lista con el nuevo codigo
-        syncNotify(oldFlightCode, passenger, handler -> {
-            try {
-                handler.notifyChangeTicket(new Notification(oldFlightCode, oldFlight.getDestination(),
-                        newFlightCode));
-            } catch (RemoteException e) {
-                e.printStackTrace();
-            }
-        });
+        Notification notification = new Notification(oldFlightCode, oldFlight.getDestination(),
+                newFlightCode);
+
+        List<NotificationHandler> notificationHandlers = store.changeFlightNotifications(
+                notification, passenger);
+
+        synchronized (notificationHandlers) {
+            notificationHandlers.forEach(handler -> {
+                store.submitNotificationTask(() -> {
+                    try {
+                        handler.notifyChangeTicket(notification);
+                    } catch (RemoteException e) {
+                        LOGGER.info("Could not notify");
+                    }
+                });
+            });
+        }
+
+        store.registerUser(new Notification(notification.getNewCode(),
+                notification.getDestination()), passenger, notificationHandlers);
     }
 
     private void syncNotify(String flightCode, String passenger, Consumer<NotificationHandler> handlerConsumer) {
-        Map<String, List<NotificationHandler>> flightNotifications;
-
-        store.getNotificationsLock().lock();
-        flightNotifications = store.getNotifications().get(flightCode);
-        store.getNotificationsLock().unlock();
-
-        if (flightNotifications == null)
-            return;
-
-        List<NotificationHandler> handlers;
-        synchronized (flightNotifications) {
-            handlers = flightNotifications.get(passenger);
-        }
-
-        if (handlers == null)
-            return;
+//        Map<String, List<NotificationHandler>> flightNotifications = store
+//                .getFlightNotifications(flightCode);
+//
+//        if (flightNotifications == null)
+//            return;
+//
+//        List<NotificationHandler> handlers;
+//        synchronized (flightNotifications) {
+//            handlers = flightNotifications.get(passenger);
+//        }
+//
+//        if (handlers == null)
+//            return;
+        List<NotificationHandler> handlers = store.getHandlers(flightCode, passenger);
 
         synchronized (handlers) {
             for (NotificationHandler handler : handlers) {

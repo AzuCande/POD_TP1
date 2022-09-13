@@ -4,7 +4,7 @@ package ar.edu.itba.pod.models;
 import java.io.Serializable;
 
 public class Notification implements Serializable {
-    private final String oldCode;
+    private String oldCode;
     private String newCode;
     private final String destination;
     private RowCategory oldCategory;
@@ -47,6 +47,11 @@ public class Notification implements Serializable {
         return oldCode;
     }
 
+    public void setOldCode(String oldCode) {
+        this.oldCode = oldCode;
+    }
+
+
     public String getNewCode() {
         return newCode;
     }
@@ -58,6 +63,7 @@ public class Notification implements Serializable {
     public RowCategory getOldCategory() {
         return oldCategory;
     }
+
     public RowCategory getNewCategory() {
         return newCategory;
     }

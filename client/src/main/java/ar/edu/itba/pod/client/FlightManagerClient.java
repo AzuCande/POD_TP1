@@ -5,6 +5,12 @@ import ar.edu.itba.pod.interfaces.FlightManagerService;
 import ar.edu.itba.pod.models.ResponseCancelledList;
 import ar.edu.itba.pod.models.RowCategory;
 import ar.edu.itba.pod.models.Ticket;
+import ar.edu.itba.pod.models.exceptions.flightExceptions.IllegalFlightException;
+import ar.edu.itba.pod.models.exceptions.flightExceptions.IllegalFlightStateException;
+import ar.edu.itba.pod.models.exceptions.flightExceptions.ModelAlreadyExistsException;
+import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundException;
+import ar.edu.itba.pod.models.exceptions.notFoundExceptions.ModelNotFoundException;
+import ar.edu.itba.pod.models.exceptions.notFoundExceptions.TicketNotFoundException;
 import com.opencsv.CSVParserBuilder;
 import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
@@ -40,37 +46,36 @@ public class FlightManagerClient {
         try {
             switch (parser.getAction().get()) {
                 case MODELS:
-                    logger.info("Uploading plane models...");
+                    logger.info("Uploading plane models");
                     FlightManagerClient.readPlaneModels(parser.getPath(), flightManagerService);
                     break;
                 case FLIGHTS:
-                    logger.info("Uploading flights...");
+                    logger.info("Uploading flights");
                     FlightManagerClient.readFlights(parser.getPath(), flightManagerService);
                     break;
                 case STATUS:
-                    logger.info("Checking flight " + parser.getFlightCode() + " status...");
+                    logger.info("Checking flight " + parser.getFlightCode() + " status");
                     System.out.println(flightManagerService.getFlightState(parser.getFlightCode()));
                     break;
                 case CONFIRM:
-                    logger.info("Confirming flight " + parser.getFlightCode() + " ...");
+                    logger.info("Confirming flight " + parser.getFlightCode());
                     flightManagerService.confirmFlight(parser.getFlightCode());
                     System.out.println("Flight confirmed successfully");
                     break;
                 case CANCEL:
-                    logger.info("Canceling flight " + parser.getFlightCode() + " ...");
+                    logger.info("Canceling flight " + parser.getFlightCode());
                     flightManagerService.cancelFlight(parser.getFlightCode());
                     System.out.println("Flight cancelled successfully");
                     break;
                 case RETICKETING:
-                    logger.info("Reticketing cancelled flights...");
+                    logger.info("Reticketing cancelled flights");
                     printReticketing(flightManagerService.changeCancelledFlights());
                     System.out.println("Reticketing successful");
                     break;
             }
-        } catch (Exception e) {
+        } catch (FlightNotFoundException | IllegalFlightException | IllegalFlightStateException e) {
             System.out.println(e.getMessage());
         }
-
 
     }
 
@@ -94,9 +99,9 @@ public class FlightManagerClient {
                 }
                 try {
                     flightManagerService.addPlaneModel(planeModel, map);
-                } catch (Exception e) {
-                    System.out.println(e.getMessage());
-                    System.out.println("Ignoring model...");
+                } catch (IllegalFlightException | ModelAlreadyExistsException e) {
+                    System.out.println(e.getMessage()); //TODO: IllegalFlightEXception refactor a IllegalPlaneException
+                    System.out.println("Ignoring model");
                 }
             }
         } catch (IOException e) {
@@ -129,8 +134,8 @@ public class FlightManagerClient {
                 }
                 try {
                     flightManager.addFlight(planeModel, flightCode, destination, tickets);
-                } catch (Exception e) {
-                    System.out.println("No model for flight " + flightCode);
+                } catch (ModelNotFoundException e) { //TODO: crear FlightALreadyExistsException
+                    System.out.println(e.getMessage());
                 }
                 tickets.clear();
             }
@@ -143,9 +148,8 @@ public class FlightManagerClient {
 
     public static void printReticketing(ResponseCancelledList list) {
         System.out.printf("%d tickets were changed\n", list.getChanged());
-        list.getUnchangedTickets().forEach(t -> {
-            System.out.printf("Cannot find alternative flight for %s on Flight %s\n", t.getPassenger(), t.getFlightCode());
-        });
+        list.getUnchangedTickets().forEach(t -> System.out.printf("Cannot find alternative flight " +
+                "for %s on Flight %s\n", t.getPassenger(), t.getFlightCode()));
 
     }
 }

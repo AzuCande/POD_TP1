@@ -3,6 +3,8 @@ package ar.edu.itba.pod.client;
 import ar.edu.itba.pod.client.parsers.SeatQueryParser;
 import ar.edu.itba.pod.interfaces.SeatQueryService;
 import ar.edu.itba.pod.models.ResponseRow;
+import ar.edu.itba.pod.models.exceptions.IllegalRowException;
+import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundException;
 import com.opencsv.CSVWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,21 +31,25 @@ public class SeatQueryClient {
 
         ArrayList<ResponseRow> rows = null;
 
-        if (parser.getRow().isPresent() && parser.getCategory().isPresent()) {
-            System.out.println("Invalid params");
-            System.exit(1);
+        try {
+            if (parser.getRow().isPresent() && parser.getCategory().isPresent()) {
+                System.out.println("Invalid params");
+                System.exit(1);
 
-        } else if (parser.getRow().isPresent()) {
-            rows = new ArrayList<>();
-            rows.add(parser.getRow().get(), service.query(parser.getFlight(), parser.getRow().get()));
+            } else if (parser.getRow().isPresent()) {
+                rows = new ArrayList<>();
+                rows.add(parser.getRow().get(), service.query(parser.getFlight(), parser.getRow().get()));
 
-        } else if (parser.getCategory().isPresent()) {
-            rows = service.query(parser.getFlight(), parser.getCategory().get());
+            } else if (parser.getCategory().isPresent()) {
+                rows = service.query(parser.getFlight(), parser.getCategory().get());
 
-        } else {
-            rows = service.query(parser.getFlight());
+            } else {
+                rows = service.query(parser.getFlight());
+            }
+            writeToCSV(rows, parser.getOutPath());
+        } catch (FlightNotFoundException | IllegalRowException e) {
+            System.out.println(e.getMessage());
         }
-        writeToCSV(rows, parser.getOutPath());
     }
 
     public static void writeToCSV(ArrayList<ResponseRow> rows, String path) {

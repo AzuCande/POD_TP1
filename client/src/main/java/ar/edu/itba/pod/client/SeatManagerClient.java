@@ -4,6 +4,13 @@ package ar.edu.itba.pod.client;
 import ar.edu.itba.pod.client.parsers.SeatManagerParser;
 import ar.edu.itba.pod.interfaces.SeatManagerService;
 import ar.edu.itba.pod.models.AlternativeFlightResponse;
+import ar.edu.itba.pod.models.exceptions.IllegalPassengerCategoryException;
+import ar.edu.itba.pod.models.exceptions.IllegalRowException;
+import ar.edu.itba.pod.models.exceptions.PassengerAlreadySeatedException;
+import ar.edu.itba.pod.models.exceptions.PassengerNotSeatedException;
+import ar.edu.itba.pod.models.exceptions.flightExceptions.IllegalFlightStateException;
+import ar.edu.itba.pod.models.exceptions.notFoundExceptions.TicketNotFoundException;
+import ar.edu.itba.pod.models.exceptions.seatExceptions.SeatAlreadyTakenException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,25 +32,31 @@ public class SeatManagerClient {
         SeatManagerService service = (SeatManagerService) Naming.lookup("//" +
                 parser.getServerAddress() + "/seatManagerService");
 
-        switch (parser.getAction().get()) {
-            case STATUS:
-                System.out.println("Is available: " + service.isAvailable(parser.getFlightCode(), parser.getRow().orElseThrow(RuntimeException::new), parser.getColumn().orElseThrow(RuntimeException::new)));
-                break;
-            case ASSIGN:
-                service.assign(parser.getFlightCode(), parser.getPassenger().orElseThrow(RuntimeException::new), parser.getRow().orElseThrow(RuntimeException::new), parser.getColumn().orElseThrow(RuntimeException::new));
-                break;
-            case ALTERNATIVES:
-                List<AlternativeFlightResponse> res = service.listAlternativeFlights(parser.getFlightCode(), parser.getPassenger().orElseThrow(RuntimeException::new));
-                printAlternatives(res);
-                break;
-            case MOVE:
-                service.changeSeat(parser.getFlightCode(), parser.getPassenger().orElseThrow(RuntimeException::new), parser.getRow().orElseThrow(RuntimeException::new), parser.getColumn().orElseThrow(RuntimeException::new));
-                break;
-            case CHANGE_TICKET:
-                service.changeFlight(parser.getPassenger().orElseThrow(RuntimeException::new), parser.getOriginalFlightCode().orElseThrow(RuntimeException::new), parser.getFlightCode());
-                break;
-            default:
-                throw new IllegalArgumentException("Invalid operation");
+        try {
+            switch (parser.getAction().get()) {
+                case STATUS:
+                    System.out.println("Is available: " + service.isAvailable(parser.getFlightCode(), parser.getRow().orElseThrow(RuntimeException::new), parser.getColumn().orElseThrow(RuntimeException::new)));
+                    break;
+                case ASSIGN:
+                    service.assign(parser.getFlightCode(), parser.getPassenger().orElseThrow(RuntimeException::new), parser.getRow().orElseThrow(RuntimeException::new), parser.getColumn().orElseThrow(RuntimeException::new));
+                    break;
+                case ALTERNATIVES:
+                    List<AlternativeFlightResponse> res = service.listAlternativeFlights(parser.getFlightCode(), parser.getPassenger().orElseThrow(RuntimeException::new));
+                    printAlternatives(res);
+                    break;
+                case MOVE:
+                    service.changeSeat(parser.getFlightCode(), parser.getPassenger().orElseThrow(RuntimeException::new), parser.getRow().orElseThrow(RuntimeException::new), parser.getColumn().orElseThrow(RuntimeException::new));
+                    break;
+                case CHANGE_TICKET:
+                    service.changeFlight(parser.getPassenger().orElseThrow(RuntimeException::new), parser.getOriginalFlightCode().orElseThrow(RuntimeException::new), parser.getFlightCode());
+                    break;
+                default:
+                    throw new IllegalArgumentException("Invalid operation");
+            }
+        } catch (SeatAlreadyTakenException | IllegalFlightStateException | PassengerAlreadySeatedException |
+                 TicketNotFoundException | IllegalPassengerCategoryException | PassengerNotSeatedException |
+                 IllegalRowException e) {
+            System.out.println(e.getMessage());
         }
     }
 

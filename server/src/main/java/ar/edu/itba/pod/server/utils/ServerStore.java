@@ -6,11 +6,14 @@ import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundExcept
 import ar.edu.itba.pod.server.models.Flight;
 
 import java.rmi.RemoteException;
+import java.security.Provider;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class ServerStore {
     private final Map<String, PlaneModel> planeModels = new HashMap<>();
@@ -39,12 +42,14 @@ public class ServerStore {
      * It does not use concurrent collections because they don't guarantee
      * to read the latest value
      */
-    public void registerUser(Notification notification, String passenger, NotificationHandler handler) {
-        Map<String, List<NotificationHandler>> flightNotifications;
-        notificationsLock.lock();
-        flightNotifications = notifications.computeIfAbsent(notification.getOldCode(),
-                k -> new HashMap<>());
-        notificationsLock.unlock();
+    public void registerUser(Notification notification, String passenger,
+                             List<NotificationHandler> handlers) {
+
+        if (handlers.isEmpty())
+            return;
+
+        Map<String, List<NotificationHandler>> flightNotifications = computeFlightNotifications(
+                notification.getOldCode());
 
         List<NotificationHandler> passengerNotifications;
         synchronized (flightNotifications) {
@@ -53,16 +58,16 @@ public class ServerStore {
         }
 
         synchronized (passengerNotifications) {
-            passengerNotifications.add(handler);
+            passengerNotifications.addAll(handlers);
         }
 
-        executor.submit(() -> {
+        submitNotificationTask(() -> handlers.forEach(handler -> {
             try {
-                handler.notifyRegister(notification);//, category, row, col);
+                handler.notifyRegister(notification);
             } catch (RemoteException e) {
-                e.printStackTrace();
+                throw new RuntimeException(e);
             }
-        });
+        }));
     }
 
     public void submitNotificationTask(Runnable task) {
@@ -71,6 +76,69 @@ public class ServerStore {
 
     public Map<String, Map<String, List<NotificationHandler>>> getNotifications() {
         return notifications;
+    }
+
+    public List<NotificationHandler> changeFlightNotifications(Notification notification,
+                                                               String passenger) {
+        List<NotificationHandler> toReturn = popHandlers(notification.getOldCode(), passenger);
+
+        /*
+        if (!toReturn.isEmpty()) {
+            notification.setOldCode(notification.getNewCode());
+            registerUser(notification, passenger, toReturn);
+        }
+
+         */
+
+        return toReturn;
+    }
+
+    public Map<String, List<NotificationHandler>> getFlightNotifications(String flightCode) {
+        return lockFlightNotifications(() -> notifications.get(flightCode));
+    }
+
+    public Map<String, List<NotificationHandler>> computeFlightNotifications(String flightCode) {
+        return lockFlightNotifications(() -> notifications.computeIfAbsent(flightCode, k -> new HashMap<>()));
+    }
+
+
+    public List<NotificationHandler> getHandlers(String flightCode, String passenger) {
+        return lockHandlers(flightCode, notifications -> notifications.get(passenger));
+    }
+
+    public List<NotificationHandler> popHandlers(String flightCode, String passenger) {
+        return lockHandlers(flightCode, notifications -> notifications.remove(passenger));
+    }
+
+    private List<NotificationHandler> lockHandlers(
+            String flightCode,
+            Function<Map<String, List<NotificationHandler>>, List<NotificationHandler>> getter) {
+
+        Map<String, List<NotificationHandler>> flightNotifications = getFlightNotifications(flightCode);
+
+        if (flightNotifications == null)
+            return Collections.emptyList();
+
+        List<NotificationHandler> notificationHandlers;
+
+        synchronized (flightNotifications) {
+            notificationHandlers = getter.apply(flightNotifications);
+        }
+
+        if (notificationHandlers == null)
+            return Collections.emptyList();
+
+        return notificationHandlers;
+    }
+
+    private Map<String, List<NotificationHandler>> lockFlightNotifications(Supplier<Map<String, List<NotificationHandler>>> fn) {
+        Map<String, List<NotificationHandler>> toReturn;
+        notificationsLock.lock();
+
+        toReturn = fn.get();
+
+        notificationsLock.unlock();
+        return toReturn;
     }
 
     public Lock getNotificationsLock() {

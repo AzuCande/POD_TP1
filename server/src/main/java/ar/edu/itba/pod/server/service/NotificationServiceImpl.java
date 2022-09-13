@@ -9,13 +9,18 @@ import ar.edu.itba.pod.server.models.Flight;
 import ar.edu.itba.pod.models.FlightState;
 import ar.edu.itba.pod.server.utils.ServerStore;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.rmi.RemoteException;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
 public class NotificationServiceImpl implements NotificationService {
 
     private final ServerStore store;
+    private static final Logger LOGGER = LoggerFactory.getLogger(NotificationServiceImpl.class);
 
     public NotificationServiceImpl(ServerStore store) {
         this.store = store;
@@ -42,6 +47,8 @@ public class NotificationServiceImpl implements NotificationService {
         } finally {
             flight.getSeatsLock().unlock();
         }
-        store.registerUser(new Notification(flightCode, flight.getDestination()), passenger, handler);
+        LOGGER.info("Registered passenger " + passenger + "to receive notifications");
+        store.registerUser(new Notification(flightCode, flight.getDestination()), passenger,
+                Collections.singletonList(handler));
     }
 }

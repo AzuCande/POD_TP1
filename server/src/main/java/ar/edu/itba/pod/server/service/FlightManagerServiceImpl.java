@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 
 public class FlightManagerServiceImpl implements FlightManagerService {
 
-    private static final Logger logger = LoggerFactory.getLogger(FlightManagerServiceImpl.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(FlightManagerServiceImpl.class);
     private final ServerStore store;
 
     final Lock modelsLock = new ReentrantLock();
@@ -41,7 +41,7 @@ public class FlightManagerServiceImpl implements FlightManagerService {
         } finally {
             modelsLock.unlock();
         }
-        logger.info("Added model " + model);
+        LOGGER.info("Added plane model: " + model);
     }
 
     @Override
@@ -65,6 +65,7 @@ public class FlightManagerServiceImpl implements FlightManagerService {
                 store.getFlightCodes().put(flightCode, FlightState.PENDING);
             }
         }
+        LOGGER.info("Added flight " + flightCode + " with model " + model);
     }
 
     @Override
@@ -93,7 +94,6 @@ public class FlightManagerServiceImpl implements FlightManagerService {
                     throw new IllegalFlightStateException();
 
                 flight = store.getPendingFlights().remove(flightCode);
-
                 flight.getStateLock().lock();
             }
 
@@ -106,12 +106,11 @@ public class FlightManagerServiceImpl implements FlightManagerService {
 
         flight.setState(state);
         flight.getStateLock().unlock();
+        LOGGER.info("Flight " + flightCode + " state changed to " + state);
 
         // TODO: modularizar notis y mandar todo esto a un thread aparte
-        Map<String, List<NotificationHandler>> flightNotifications;
-        store.getNotificationsLock().lock();
-        flightNotifications = store.getNotifications().get(flightCode);
-        store.getNotificationsLock().unlock();
+        Map<String, List<NotificationHandler>> flightNotifications = store
+                .getFlightNotifications(flightCode);
 
         if (flightNotifications == null)
             return;
@@ -143,7 +142,7 @@ public class FlightManagerServiceImpl implements FlightManagerService {
                                         break;
                                 }
                             } catch (RemoteException e) {
-                                logger.info("Could not send notification");
+                                LOGGER.info("Could not send notification");
                             }
                         });
                     }
@@ -153,97 +152,87 @@ public class FlightManagerServiceImpl implements FlightManagerService {
     }
 
     @Override
-    public ResponseCancelledList changeCancelledFlights() throws RemoteException { // TODO: modularizar
+    public ResponseCancelledList changeCancelledFlights() throws RemoteException {
         Collection<Flight> cancelledFlights;
         synchronized (store.getCancelledFlights()) {
             cancelledFlights = store.getCancelledFlights().values();
         }
-
         ArrayList<CancelledTicket> unchangedTickets = new ArrayList<>();
         int changedCounter = 0;
 
         cancelledFlights = cancelledFlights.stream()
                 .sorted(Comparator.comparing(Flight::getCode)).collect(Collectors.toList());
 
+        Map<String, Notification> notificationsToSend = new HashMap<>();
+
         for (Flight cancelled : cancelledFlights) {
-            cancelled.getSeatsLock().lock();
-            try {
-                List<Ticket> tickets = cancelled.getTickets().values().stream()
-                        .sorted(Comparator.naturalOrder()).collect(Collectors.toList());
-
-                for (Ticket ticket : tickets) {
-                    Comparator<Flight> comparator = new FlightComparator(ticket);
-                    Flight newFlight;
-
-                    synchronized (store.getPendingFlights()) {
-                        newFlight = store.getPendingFlights().values().stream().filter(flight ->
-                                        flight.getDestination().equals(ticket.getDestination()) &&
-                                                flight.getAvailableByCategory(ticket.getCategory()) != -1)
-                                .min(comparator)
-                                .orElse(null);
-
-                        if (newFlight == null) {
-                            unchangedTickets.add(new CancelledTicket(cancelled.getCode(), ticket.getPassenger()));
-                            continue;
-                        }
-
-                        // PRIMERO ESTADO, DESPUÉS ASIENTO
-                        newFlight.getStateLock().lock();
-                        newFlight.getSeatsLock().lock();
-
-                    }
-                    cancelled.changeFlight(ticket.getPassenger(), newFlight);
-                    changedCounter++;
-
-                    newFlight.getSeatsLock().unlock();
-                    newFlight.getStateLock().unlock();
-
-                    // TODO: Modular NOTIFICACIONES
-                    store.getNotificationsLock().lock();
-
-                    Map<String, List<NotificationHandler>> cancelledNotifications = store
-                            .getNotifications().get(cancelled.getCode());
-
-                    if (cancelledNotifications == null) {
-                        store.getNotificationsLock().unlock();
-                        continue;
-                    }
-
-                    Map<String, List<NotificationHandler>> newNotifications = store.getNotifications()
-                            .computeIfAbsent(newFlight.getCode(), k -> new HashMap<>());
-
-                    store.getNotificationsLock().unlock();
-
-                    List<NotificationHandler> notificationHandlers;
-
-                    synchronized (cancelledNotifications) {
-                        notificationHandlers = cancelledNotifications.remove(ticket.getPassenger());
-                    }
-
-                    if (notificationHandlers == null)
-                        continue;
-
-                    synchronized (newNotifications) {
-                        newNotifications.put(ticket.getPassenger(), notificationHandlers);
-                    }
-
-                    synchronized (notificationHandlers) {
-                        notificationHandlers.forEach(handler -> {
-                            store.submitNotificationTask(() -> {
-                                try {
-                                    handler.notifyChangeTicket(new Notification(cancelled.getCode(),
-                                            cancelled.getDestination(), newFlight.getCode()));
-                                } catch (RemoteException e) {
-                                    logger.info("Could not notify");
-                                }
-                            });
-                        });
-                    }
-                }
-            } finally {
-                cancelled.getSeatsLock().unlock();
-            }
+            LOGGER.info("Reticketing for flight " + cancelled.getCode());
+            changedCounter += reticketCancelledFlight(cancelled, unchangedTickets, notificationsToSend);
         }
+
+        notificationsToSend.forEach(this::sendNotification);
         return new ResponseCancelledList(changedCounter, unchangedTickets);
+    }
+
+    private int reticketCancelledFlight(Flight cancelled, List<CancelledTicket> unchangedTickets, Map<String, Notification> notificationsToSend) {
+        int toReturn = 0;
+        cancelled.getSeatsLock().lock();
+        try {
+            List<Ticket> tickets = cancelled.getTickets().values().stream()
+                    .sorted(Comparator.naturalOrder()).collect(Collectors.toList());
+
+            for (Ticket ticket : tickets) {
+                Comparator<Flight> comparator = new FlightComparator(ticket);
+                Flight newFlight;
+
+                synchronized (store.getPendingFlights()) {
+                    newFlight = store.getPendingFlights().values().stream().filter(flight ->
+                                    flight.getDestination().equals(ticket.getDestination()) &&
+                                            flight.getAvailableByCategory(ticket.getCategory()) != -1)
+                            .min(comparator)
+                            .orElse(null);
+
+                    if (newFlight == null) {
+                        unchangedTickets.add(new CancelledTicket(cancelled.getCode(),
+                                ticket.getPassenger()));
+                        continue;
+                    }
+                    newFlight.getStateLock().lock();
+                    newFlight.getSeatsLock().lock();
+                }
+                cancelled.changeFlight(ticket.getPassenger(), newFlight);
+                toReturn = 1;
+
+                newFlight.getSeatsLock().unlock();
+                newFlight.getStateLock().unlock();
+
+                notificationsToSend.put(ticket.getPassenger(),
+                        new Notification(cancelled.getCode(), cancelled.getDestination(),
+                                newFlight.getCode()));
+            }
+        } finally {
+            cancelled.getSeatsLock().unlock();
+        }
+        return toReturn;
+    }
+
+    private void sendNotification(String passenger, Notification notification) {
+        List<NotificationHandler> notificationHandlers = store.changeFlightNotifications(notification,
+                passenger);
+
+        synchronized (notificationHandlers) {
+            notificationHandlers.forEach(handler -> {
+                store.submitNotificationTask(() -> {
+                    try {
+                        handler.notifyChangeTicket(notification);
+                    } catch (RemoteException e) {
+                        LOGGER.info("Could not notify");
+                    }
+                });
+            });
+        }
+
+        store.registerUser(new Notification(notification.getNewCode(),
+                notification.getDestination()), passenger, notificationHandlers);
     }
 }

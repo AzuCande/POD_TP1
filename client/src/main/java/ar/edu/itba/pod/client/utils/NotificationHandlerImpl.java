@@ -1,9 +1,7 @@
 package ar.edu.itba.pod.client.utils;
 
 import ar.edu.itba.pod.callbacks.NotificationHandler;
-import ar.edu.itba.pod.models.FlightState;
 import ar.edu.itba.pod.models.Notification;
-import ar.edu.itba.pod.models.RowCategory;
 
 import java.rmi.RemoteException;
 
@@ -69,7 +67,8 @@ public class NotificationHandlerImpl implements NotificationHandler {
     //Your ticket changed to Flight AA101 with destination JFK from Flight AA100 with destination JFK.
     @Override
     public void notifyChangeTicket(Notification notification) throws RemoteException {
-        System.out.printf("Your ticket changed to Flight %s with destination %s from Flight %s with destination %s\n",
+        System.out.printf("Your ticket changed to Flight %s with destination %s from Flight %s " +
+                        "with destination %s\n",
                 notification.getNewCode(), notification.getDestination(),
                 notification.getOldCode(), notification.getDestination());
     }
