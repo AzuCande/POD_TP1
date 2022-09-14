@@ -3,7 +3,6 @@ package ar.edu.itba.pod.server.models;
 import ar.edu.itba.pod.models.RowCategory;
 import ar.edu.itba.pod.models.exceptions.seatExceptions.InvalidSeatException;
 import ar.edu.itba.pod.models.exceptions.seatExceptions.NoAvailableSeatsException;
-import ar.edu.itba.pod.models.exceptions.seatExceptions.SeatAlreadyTakenException;
 
 
 public class Row {

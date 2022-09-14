@@ -4,7 +4,6 @@ import ar.edu.itba.pod.assets.TestConstants;
 import ar.edu.itba.pod.models.AlternativeFlightResponse;
 import ar.edu.itba.pod.models.RowCategory;
 import ar.edu.itba.pod.models.exceptions.flightExceptions.IllegalFlightStateException;
-import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundException;
 import ar.edu.itba.pod.models.exceptions.seatExceptions.SeatAlreadyTakenException;
 import ar.edu.itba.pod.server.utils.ServerStore;
 import ar.edu.itba.pod.server.service.FlightManagerServiceImpl;
@@ -50,13 +49,6 @@ public class SeatManagerServiceImplTest {
         seatManagerService.assign(TestConstants.FLIGHT_CODE_1, TestConstants.PASSENGER_3, TestConstants.ROW_2, TestConstants.SEAT_1);
 
         assertEquals(0, store.getPendingFlights().get(TestConstants.FLIGHT_CODE_1).getAvailableByCategory(RowCategory.ECONOMY));
-    }
-
-    @Test(expected = FlightNotFoundException.class)
-    public void testAssignPassengerWithInvalidFlightCode() throws RemoteException {
-        flightManagerService.addPlaneModel(TestConstants.PLANE_MODEL_STR_1, TestConstants.SEAT_CATEGORIES);
-        flightManagerService.addFlight(TestConstants.PLANE_MODEL_STR_1, TestConstants.FLIGHT_CODE_1, TestConstants.DESTINATION_1, TestConstants.TICKETS_1);
-        seatManagerService.assign(TestConstants.FLIGHT_CODE_2, TestConstants.PASSENGER_2, TestConstants.ROW_1, TestConstants.SEAT_1);
     }
 
     @Test(expected = IllegalFlightStateException.class)

@@ -57,15 +57,15 @@ public class SeatManagerServiceImpl implements SeatManagerService {
                 flightCode);
 
         syncNotify(flightCode, passenger, handler ->
-                store.submitNotificationTask(() -> {
-                    try {
-                        handler.notifyAssignSeat(new Notification(flightCode,
-                                flight.getDestination(), flight.getRows()[row].getRowCategory(),
-                                row, seat));
-                    } catch (RemoteException e) {
-                        LOGGER.info("Could not notify");
-                    }
-                }));
+            store.submitNotificationTask(() -> {
+                try {
+                    handler.notifyAssignSeat(new Notification(flightCode,
+                            flight.getDestination(), flight.getRows()[row].getRowCategory(),
+                            row, seat));
+                } catch (RemoteException e) {
+                    LOGGER.info("Could not notify");
+                }
+            }));
     }
 
     @Override

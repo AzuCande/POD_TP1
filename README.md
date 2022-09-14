@@ -109,9 +109,3 @@ donde:
 * Si no se indica `-Dcategory` ni `-Drow`, se imprime en pantalla el mapa de asientos completo del vuelo.
 * Si se indica `-Dcategory`, se imprime en pantalla el mapa de asientos de la categoría `catName` del asiento del vuelo elegido.
 * Si se indica `-Drow`, se imprime en pantalla el mapa de asientos de la fila `rowNumber` del vuelo elegido.
----------------------------------------------------------------------------------
-
-## Testeo
-
----------------------------------------------------------------------------------
-

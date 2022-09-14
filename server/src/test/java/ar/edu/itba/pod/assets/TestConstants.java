@@ -44,6 +44,7 @@ public class TestConstants {
     public static final String PASSENGER_4 = "Franco Meola";
     public static final String PASSENGER_5 = "Santos Rosati";
     public static final String PASSENGER_6 = "Uriel Mihura";
+    public static final String PASSENGER_7 = "Marcelo Turrin";
 
     public static final Ticket TICKET_1 = new Ticket(RowCategory.BUSINESS, PASSENGER_1, DESTINATION_1);
     public static final Ticket TICKET_2 = new Ticket(RowCategory.PREMIUM_ECONOMY, PASSENGER_2, DESTINATION_1);
@@ -54,6 +55,7 @@ public class TestConstants {
     public static final Ticket TICKET_7 = new Ticket(RowCategory.BUSINESS, PASSENGER_1, DESTINATION_2);
     public static final Ticket TICKET_8 = new Ticket(RowCategory.PREMIUM_ECONOMY, PASSENGER_3, DESTINATION_2);
     public static final Ticket TICKET_9 = new Ticket(RowCategory.ECONOMY, PASSENGER_5, DESTINATION_2);
+    public static final Ticket TICKET_10 = new Ticket(RowCategory.BUSINESS, PASSENGER_7, DESTINATION_2);
 
     public static final List<Ticket> TICKETS_1 = new ArrayList<Ticket>() {{
         add(TICKET_1);
@@ -80,6 +82,10 @@ public class TestConstants {
         add(TICKET_7);
         add(TICKET_8);
         add(TICKET_9);
+    }};
+
+    public static final List<Ticket> TICKETS_6 = new ArrayList<Ticket>() {{
+        add(TICKET_10);
     }};
 
     public static final int ROW_0 = 0;

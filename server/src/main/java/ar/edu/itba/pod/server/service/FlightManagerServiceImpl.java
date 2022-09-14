@@ -50,7 +50,7 @@ public class FlightManagerServiceImpl implements FlightManagerService {
         PlaneModel model;
         modelsLock.lock();
         try {
-            model = Optional.of(store.getPlaneModels().get(planeModel))
+            model = Optional.ofNullable(store.getPlaneModels().get(planeModel))
                     .orElseThrow(ModelNotFoundException::new);
         } finally {
             modelsLock.unlock();

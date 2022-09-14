@@ -5,7 +5,6 @@ import ar.edu.itba.pod.client.utils.SeatActions;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.Properties;
-import java.util.stream.Collectors;
 
 public class SeatManagerParser {
     private static final String SERVER_ADDRESS = "serverAddress";
