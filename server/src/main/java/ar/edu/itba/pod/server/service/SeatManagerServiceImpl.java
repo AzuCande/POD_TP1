@@ -63,7 +63,7 @@ public class SeatManagerServiceImpl implements SeatManagerService {
                             flight.getDestination(), flight.getRows()[row].getRowCategory(),
                             row, seat));
                 } catch (RemoteException e) {
-                    LOGGER.info("Could not notify");
+                    LOGGER.info("Could not notify", e);
                 }
             }));
     }

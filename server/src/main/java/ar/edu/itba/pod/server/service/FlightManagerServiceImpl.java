@@ -142,7 +142,7 @@ public class FlightManagerServiceImpl implements FlightManagerService {
                                         break;
                                 }
                             } catch (RemoteException e) {
-                                LOGGER.info("Could not send notification");
+                                LOGGER.info("Could not send notification", e);
                             }
                         });
                     }

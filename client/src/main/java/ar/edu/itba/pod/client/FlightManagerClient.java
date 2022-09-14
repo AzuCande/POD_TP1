@@ -32,13 +32,13 @@ import java.util.Map;
 
 
 public class FlightManagerClient {
-    private static final Logger logger = LoggerFactory.getLogger(FlightManagerClient.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(FlightManagerClient.class);
     private static final ICSVParser CSV_PARSER = new CSVParserBuilder().withSeparator(';').build();
 
     public static void main(String[] args) throws MalformedURLException, NotBoundException, RemoteException {
         FlightManagerParser parser = new FlightManagerParser();
         parser.parse();
-        logger.info("Flight Manager Client Starting ...");
+        LOGGER.info("Flight Manager Client Starting ...");
 
         FlightManagerService flightManagerService =
                 (FlightManagerService) Naming.lookup("//" + parser.getServerAddress() + "/flightManagerService");
@@ -46,35 +46,35 @@ public class FlightManagerClient {
         try {
             switch (parser.getAction().get()) {
                 case MODELS:
-                    logger.info("Uploading plane models");
+                    LOGGER.info("Uploading plane models");
                     FlightManagerClient.readPlaneModels(parser.getPath(), flightManagerService);
                     break;
                 case FLIGHTS:
-                    logger.info("Uploading flights");
+                    LOGGER.info("Uploading flights");
                     FlightManagerClient.readFlights(parser.getPath(), flightManagerService);
                     break;
                 case STATUS:
-                    logger.info("Checking flight " + parser.getFlightCode() + " status");
-                    System.out.println(flightManagerService.getFlightState(parser.getFlightCode()));
+                    LOGGER.info("Checking flight " + parser.getFlightCode() + " status");
+                    LOGGER.info(flightManagerService.getFlightState(parser.getFlightCode()).toString());
                     break;
                 case CONFIRM:
-                    logger.info("Confirming flight " + parser.getFlightCode());
+                    LOGGER.info("Confirming flight " + parser.getFlightCode());
                     flightManagerService.confirmFlight(parser.getFlightCode());
-                    System.out.println("Flight confirmed successfully");
+                    LOGGER.info("Flight confirmed successfully");
                     break;
                 case CANCEL:
-                    logger.info("Canceling flight " + parser.getFlightCode());
+                    LOGGER.info("Canceling flight " + parser.getFlightCode());
                     flightManagerService.cancelFlight(parser.getFlightCode());
-                    System.out.println("Flight cancelled successfully");
+                    LOGGER.info("Flight cancelled successfully");
                     break;
                 case RETICKETING:
-                    logger.info("Reticketing cancelled flights");
+                    LOGGER.info("Reticketing cancelled flights");
                     printReticketing(flightManagerService.changeCancelledFlights());
-                    System.out.println("Reticketing successful");
+                    LOGGER.info("Reticketing successful");
                     break;
             }
         } catch (FlightNotFoundException | IllegalPlaneException | IllegalFlightStateException e) {
-            System.out.println(e.getMessage());
+            LOGGER.error(e.getMessage());
         }
 
     }
@@ -100,12 +100,12 @@ public class FlightManagerClient {
                 try {
                     flightManagerService.addPlaneModel(planeModel, map);
                 } catch (IllegalPlaneException | ModelAlreadyExistsException e) {
-                    System.out.println(e.getMessage());
-                    System.out.println("Ignoring model");
+                    LOGGER.error(e.getMessage());
+                    LOGGER.info("Ignoring model");
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.error(e.getMessage());
         } catch (CsvValidationException e) {
             throw new RuntimeException(e);
         }
@@ -135,21 +135,20 @@ public class FlightManagerClient {
                 try {
                     flightManager.addFlight(planeModel, flightCode, destination, tickets);
                 } catch (ModelNotFoundException | FlightAlreadyExistsException e) {
-                    System.out.println(e.getMessage());
+                    LOGGER.error(e.getMessage());
                 }
                 tickets.clear();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.error(e.getMessage());
         } catch (RuntimeException | CsvValidationException e) {
             throw new RuntimeException(e);
         }
     }
 
     public static void printReticketing(ResponseCancelledList list) {
-        System.out.printf("%d tickets were changed\n", list.getChanged());
-        list.getUnchangedTickets().forEach(t -> System.out.printf("Cannot find alternative flight " +
-                "for %s on Flight %s\n", t.getPassenger(), t.getFlightCode()));
-
+        LOGGER.info("{} tickets were changed", list.getChanged());
+        list.getUnchangedTickets().forEach(t ->
+                LOGGER.info("Cannot find alternative flight " + "for {} on Flight {}\n", t.getPassenger(), t.getFlightCode()));
     }
 }

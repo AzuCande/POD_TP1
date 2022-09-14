@@ -21,13 +21,13 @@ import java.rmi.RemoteException;
 import java.util.List;
 
 public class SeatManagerClient {
-    private static final Logger logger = LoggerFactory.getLogger(SeatManagerClient.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SeatManagerClient.class);
 
     public static void main(String[] args) throws MalformedURLException, NotBoundException, RemoteException {
         SeatManagerParser parser = new SeatManagerParser();
         parser.parse();
 
-        logger.info("Flight Notifications Client Starting ...");
+        LOGGER.info("Flight Notifications Client Starting ...");
 
         SeatManagerService service = (SeatManagerService) Naming.lookup("//" +
                 parser.getServerAddress() + "/seatManagerService");
@@ -56,7 +56,7 @@ public class SeatManagerClient {
         } catch (SeatAlreadyTakenException | IllegalFlightStateException | PassengerAlreadySeatedException |
                  TicketNotFoundException | IllegalPassengerCategoryException | PassengerNotSeatedException |
                  IllegalRowException e) {
-            System.out.println(e.getMessage());
+            LOGGER.error(e.getMessage());
         }
     }
 

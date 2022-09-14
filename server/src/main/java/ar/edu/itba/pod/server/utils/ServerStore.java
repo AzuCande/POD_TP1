@@ -4,6 +4,8 @@ import ar.edu.itba.pod.callbacks.NotificationHandler;
 import ar.edu.itba.pod.models.*;
 import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundException;
 import ar.edu.itba.pod.server.models.Flight;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.rmi.RemoteException;
 import java.util.*;
@@ -15,6 +17,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class ServerStore {
+    private static final Logger LOGGER = LoggerFactory.getLogger(ServerStore.class);
     private final Map<String, PlaneModel> planeModels = new HashMap<>();
     private final Map<String, FlightState> flightCodes = new HashMap<>();
     private final Map<String, Flight> pendingFlights = new HashMap<>();
@@ -139,7 +142,7 @@ public class ServerStore {
                 try {
                     handler.notifyChangeTicket(notification);
                 } catch (RemoteException e) {
-                    //logger.info("Could not notify");
+                    LOGGER.error("Error notifying change ticket", e);
                 }
             }));
         }

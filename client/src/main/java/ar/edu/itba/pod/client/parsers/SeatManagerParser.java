@@ -1,12 +1,15 @@
 package ar.edu.itba.pod.client.parsers;
 
 import ar.edu.itba.pod.client.utils.SeatActions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.Properties;
 
 public class SeatManagerParser {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SeatManagerParser.class);
     private static final String SERVER_ADDRESS = "serverAddress";
     private static final String ACTION = "action";
     private static final String FLIGHT_CODE = "flight";
@@ -27,7 +30,7 @@ public class SeatManagerParser {
         Properties props = System.getProperties();
 
         if ((serverAddress = props.getProperty(SERVER_ADDRESS)) == null) {
-            System.out.println("Server address not specified");
+            LOGGER.error("Server address not specified");
             System.exit(1);
         }
 
@@ -36,19 +39,17 @@ public class SeatManagerParser {
                     Arrays.stream(SeatActions.values()).filter(a -> a.getDescription().equals(p))
                             .findFirst().orElseThrow(IllegalArgumentException::new));
         } catch (IllegalArgumentException e) {
-            System.out.println("Invalid action");
-            System.out.println();
-            e.printStackTrace(System.out);
+            LOGGER.error("Invalid action", e);
             System.exit(1);
         }
 
         if (!action.isPresent()) {
-            System.out.println("Action not specified");
+            LOGGER.error("Action not specified");
             System.exit(1);
         }
 
         if ((flightCode = props.getProperty(FLIGHT_CODE)) == null) {
-            System.out.println("Flight not specified");
+            LOGGER.error("Flight code not specified");
             System.exit(1);
         }
 
@@ -62,11 +63,11 @@ public class SeatManagerParser {
             try {
                 row = Optional.ofNullable(props.getProperty(ROW)).map(Integer::parseInt);
             } catch (NumberFormatException e) {
-                System.out.println("Invalid row");
+                LOGGER.error("Invalid row", e);
                 System.exit(1);
             }
             if (!column.isPresent()) {
-                System.out.println("Column not specified");
+                LOGGER.error("Column not specified");
                 System.exit(1);
             }
         }
@@ -74,7 +75,7 @@ public class SeatManagerParser {
         if (SeatActions.ASSIGN.equals(action.orElse(null)) || SeatActions.MOVE.equals(action.orElse(null))
                 || SeatActions.ALTERNATIVES.equals(action.orElse(null)) || SeatActions.CHANGE_TICKET.equals(action.orElse(null))) {
             if (!passenger.isPresent()) {
-                System.out.println("Passenger not specified");
+                LOGGER.error("Passenger not specified");
             }
         }
     }

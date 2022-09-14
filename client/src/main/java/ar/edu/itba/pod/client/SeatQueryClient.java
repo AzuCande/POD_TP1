@@ -19,13 +19,13 @@ import java.util.Collections;
 import java.util.List;
 
 public class SeatQueryClient {
-    private static final Logger logger = LoggerFactory.getLogger(SeatQueryClient.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(SeatQueryClient.class);
 
     public static void main(String[] args) throws MalformedURLException, NotBoundException, RemoteException {
         SeatQueryParser parser = new SeatQueryParser();
         parser.parse();
 
-        logger.info("Flight Notifications Client Starting ...");
+        LOGGER.info("Flight Notifications Client Starting ...");
 
         SeatQueryService service = (SeatQueryService) Naming.lookup("//" + parser.getServerAddress() + "/seatQueryService");
 
@@ -33,7 +33,7 @@ public class SeatQueryClient {
 
         try {
             if (parser.getRow().isPresent() && parser.getCategory().isPresent()) {
-                System.out.println("Invalid params");
+                LOGGER.error("Invalid params");
                 System.exit(1);
 
             } else if (parser.getRow().isPresent()) {
@@ -47,7 +47,7 @@ public class SeatQueryClient {
             }
             writeToCSV(rows, parser.getOutPath());
         } catch (FlightNotFoundException | IllegalRowException e) {
-            System.out.println(e.getMessage());
+            LOGGER.error(e.getMessage());
         }
     }
 
@@ -78,7 +78,7 @@ public class SeatQueryClient {
             }
             writer.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            LOGGER.error(e.getMessage());
         }
     }
 }

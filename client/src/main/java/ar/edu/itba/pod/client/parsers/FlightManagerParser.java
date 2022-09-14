@@ -1,11 +1,15 @@
 package ar.edu.itba.pod.client.parsers;
 
 import ar.edu.itba.pod.client.utils.FlightActions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 import java.util.Properties;
 
 public class FlightManagerParser {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(FlightManagerParser.class);
     private static final String SERVER_ADDRESS = "serverAddress";
     private static final String ACTION = "action";
     private static final String PATH = "inPath";
@@ -20,19 +24,20 @@ public class FlightManagerParser {
         Properties props = System.getProperties();
 
         if((serverAddress = props.getProperty(SERVER_ADDRESS)) == null) {
-            System.out.println("Server address not specified");
+            LOGGER.error("Server address not specified");
             System.exit(1);
+
         }
 
         try {
             action = Optional.ofNullable(props.getProperty(ACTION)).map(FlightActions::getAction);
         } catch (IllegalArgumentException e) {
-            System.out.println("Invalid action");
+            LOGGER.error("Invalid action", e);
             System.exit(1);
         }
 
         if(!action.isPresent()) {
-            System.out.println("Action not specified");
+            LOGGER.error("Action not specified");
             System.exit(1);
         }
 
@@ -42,7 +47,7 @@ public class FlightManagerParser {
         if(FlightActions.MODELS.equals(action.orElse(null))
                 || FlightActions.FLIGHTS.equals(action.orElse(null))) {
             if(path == null) {
-                System.out.println("Path not specified");
+                LOGGER.error("Path not specified");
                 System.exit(1);
             }
         }
@@ -51,7 +56,7 @@ public class FlightManagerParser {
                 FlightActions.CONFIRM.equals(action.orElse(null)) ||
                 FlightActions.CANCEL.equals(action.orElse(null))){
             if(flightCode == null) {
-                System.out.println("Flight code not specified");
+                LOGGER.error("Flight code not specified");
                 System.exit(1);
             }
         }
