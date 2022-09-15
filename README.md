@@ -12,7 +12,7 @@
 
 ## Objetivo
 
-El objetivo de este Trabajo Práctico es implementar un sistema de tickets de vuelos con concurrencia y multithreading.
+El objetivo de este Trabajo Práctico es implementar un sistema remoto de tickets de vuelos thread-safe.
 Más información sobre la consigna en el pdf encontrado en este mismo directorio.
 
 ---------------------------------------------------------------------------------
