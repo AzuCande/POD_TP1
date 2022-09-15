@@ -55,7 +55,7 @@ Para todos se debe pasar como argumento `-DserverAddress=xx.xx.xx.xx:yyyy` donde
 #### Cliente de Administración de Vuelos
 
 ```bash
-> run-admin-client.sh -DserverAddress=xx.xx.xx.xx:yyyy -Daction=actionName [ -DinPath=filename | -Dflight=flightCode ]
+> run-admin-client -DserverAddress=xx.xx.xx.xx:yyyy -Daction=actionName [ -DinPath=filename | -Dflight=flightCode ]
 ```
 donde los posibles valores del `actionName` son:
   * `models` agrega un lote de modelos de aviones.
@@ -70,7 +70,7 @@ donde los posibles valores del `actionName` son:
 #### Cliente de Asignación de Asientos
 
 ```bash
-> run-seatAssign.sh -DserverAddress=xx.xx.xx.xx:yyyy -Daction=actionName -Dflight=flightCode [ -Dpassenger=name | -Drow=num | -Dcol=L | -DoriginalFlight=originFlightCode ]
+> run-seatAssign -DserverAddress=xx.xx.xx.xx:yyyy -Daction=actionName -Dflight=flightCode [ -Dpassenger=name | -Drow=num | -Dcol=L | -DoriginalFlight=originFlightCode ]
 ```
 
 donde los posibles valores del `actionName` son:
@@ -83,7 +83,7 @@ donde los posibles valores del `actionName` son:
 #### Cliente de Notificaciones del Vuelo
     
 ```bash
-> run-notifications.sh -DserverAddress=xx.xx.xx.xx:yyyy -Dflight=flightCode -Dpassenger=name
+> run-notifications -DserverAddress=xx.xx.xx.xx:yyyy -Dflight=flightCode -Dpassenger=name
 ```
 
 donde `flightCode` es el código de vuelo y `name` es el nombre del pasajero.
@@ -91,7 +91,7 @@ donde `flightCode` es el código de vuelo y `name` es el nombre del pasajero.
 #### Cliente de Consulta del Mapa de Asientos
 
 ```bash
-> run-seatMap.sh -DserverAddress=xx.xx.xx.xx:yyyy -Dflight=flightCode [ -Dcategory=catName | -Drow=rowNumber ] -DoutPath=output.csv
+> run-seatMap -DserverAddress=xx.xx.xx.xx:yyyy -Dflight=flightCode [ -Dcategory=catName | -Drow=rowNumber ] -DoutPath=output.csv
 ```
 
 donde:

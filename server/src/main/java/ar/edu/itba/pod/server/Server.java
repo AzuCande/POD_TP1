@@ -21,10 +21,10 @@ import java.rmi.server.UnicastRemoteObject;
 
 
 public class Server {
-    private static final Logger logger = LoggerFactory.getLogger(Server.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(Server.class);
 
     public static void main(String[] args) throws RemoteException {
-        logger.info("rmi-project Server Starting ...");
+        LOGGER.info("rmi-project Server Starting ...");
 
         ServerStore store = new ServerStore();
 

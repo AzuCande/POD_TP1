@@ -18,13 +18,13 @@ import java.rmi.server.UnicastRemoteObject;
 
 public class FlightNotificationsClient {
 
-    private static final Logger logger = LoggerFactory.getLogger(FlightNotificationsClient.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(FlightNotificationsClient.class);
 
     public static void main(String[] args) throws MalformedURLException, NotBoundException, RemoteException {
         FlightNotificationsParser parser = new FlightNotificationsParser();
         parser.parse();
 
-        logger.info("Flight Notifications Client Starting ...");
+        LOGGER.info("Flight Notifications Client Starting ...");
 
         final NotificationHandler notificationHandler = new NotificationHandlerImpl();
 
@@ -40,7 +40,7 @@ public class FlightNotificationsClient {
         try {
             notificationService.registerPassenger(parser.getFlight(), parser.getPassenger(), notificationHandler);
         } catch (Exception e) { // TODO: Catch specific exceptions
-            logger.error("Error registering passenger", e);
+            LOGGER.error("Error registering passenger", e);
             UnicastRemoteObject.unexportObject(notificationHandler, true);
         }
     }
