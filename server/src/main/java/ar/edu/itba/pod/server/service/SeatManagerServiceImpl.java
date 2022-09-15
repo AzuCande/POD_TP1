@@ -53,7 +53,7 @@ public class SeatManagerServiceImpl implements SeatManagerService {
             flight.getStateLock().unlock();
         }
 
-        LOGGER.info("Assigned seat" + row + seat + " to passenger " + passenger + " on flight " +
+        LOGGER.info("Assigned seat " + row + seat + " to passenger " + passenger + " on flight " +
                 flightCode);
 
         syncNotify(flightCode, passenger, handler ->

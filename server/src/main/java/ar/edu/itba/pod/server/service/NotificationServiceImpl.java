@@ -45,7 +45,7 @@ public class NotificationServiceImpl implements NotificationService {
         } finally {
             flight.getSeatsLock().unlock();
         }
-        LOGGER.info("Registered passenger " + passenger + "to receive notifications");
+        LOGGER.info("Registered passenger " + passenger + " to receive notifications");
         store.registerUser(new Notification(flightCode, flight.getDestination()), passenger,
                 Collections.singletonList(handler));
     }

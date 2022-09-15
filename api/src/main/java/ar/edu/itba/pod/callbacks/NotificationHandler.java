@@ -5,15 +5,16 @@ import java.rmi.Remote;
 import java.rmi.RemoteException;
 
 public interface NotificationHandler extends Remote {
-    void notifyRegister(Notification notification) throws RemoteException; //OK
-    void notifyCancelFlight(Notification notification) throws RemoteException; //OK
+    void notifyRegister(Notification notification) throws RemoteException; 
 
-    void notifyConfirmFlight(Notification notification) throws RemoteException; //OK
+    void notifyCancelFlight(Notification notification) throws RemoteException;
 
-    void notifyAssignSeat(Notification notification) throws RemoteException; //OK
+    void notifyConfirmFlight(Notification notification) throws RemoteException;
+
+    void notifyAssignSeat(Notification notification) throws RemoteException;
 
     void notifyChangeSeat(Notification notification) throws RemoteException;
 
-    void notifyChangeTicket(Notification notification) throws RemoteException; //OK
+    void notifyChangeTicket(Notification notification) throws RemoteException;
 
 }
