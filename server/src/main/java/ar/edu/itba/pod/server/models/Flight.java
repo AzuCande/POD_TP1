@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class Flight {
@@ -150,17 +151,28 @@ public class Flight {
     }
 
 
+    public int getAllAvailableByCategory(RowCategory category) {
+        return traverseAndGetAvailable(() -> {
+            int toReturn = 0;
+            for (int i = category.ordinal(); i >= 0; i--) {
+                toReturn += availableSeats[category.ordinal()];
+            }
+            return toReturn;
+        });
+    }
 
     public int getAvailableByCategory(RowCategory category) {
+        return traverseAndGetAvailable(() -> availableSeats[category.ordinal()]);
+    }
+
+    private int traverseAndGetAvailable(Supplier<Integer> supplier) {
         int toReturn;
         stateLock.lock();
         seatsLock.lock();
-        toReturn = availableSeats[category.ordinal()];
+        toReturn = supplier.get();
         seatsLock.unlock();
         stateLock.unlock();
-
         return toReturn;
-
     }
 
     public int getAvailableCategory(RowCategory category) {

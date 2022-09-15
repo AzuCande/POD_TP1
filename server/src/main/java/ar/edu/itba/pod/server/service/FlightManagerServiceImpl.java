@@ -188,7 +188,7 @@ public class FlightManagerServiceImpl implements FlightManagerService {
                 synchronized (store.getPendingFlights()) {
                     newFlight = store.getPendingFlights().values().stream().filter(flight ->
                                     flight.getDestination().equals(ticket.getDestination()) &&
-                                            flight.getAvailableByCategory(ticket.getCategory()) != -1)
+                                            flight.getAllAvailableByCategory(ticket.getCategory()) != 0)
                             .min(comparator)
                             .orElse(null);
 

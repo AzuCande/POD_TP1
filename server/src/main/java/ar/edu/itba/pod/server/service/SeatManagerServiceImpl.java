@@ -5,6 +5,7 @@ import ar.edu.itba.pod.interfaces.SeatManagerService;
 import ar.edu.itba.pod.models.*;
 import ar.edu.itba.pod.models.AlternativeFlightResponse;
 import ar.edu.itba.pod.models.exceptions.flightExceptions.IllegalFlightStateException;
+import ar.edu.itba.pod.models.exceptions.seatExceptions.NoAvailableSeatsException;
 import ar.edu.itba.pod.server.utils.ServerStore;
 import ar.edu.itba.pod.server.models.Flight;
 import org.slf4j.Logger;
@@ -177,6 +178,8 @@ public class SeatManagerServiceImpl implements SeatManagerService {
 
         try {
             newFlight = getPendingFlight(newFlightCode);
+            if (newFlight.getAllAvailableByCategory(oldFlight.getTicket(passenger).getCategory()) == 0)
+                throw new NoAvailableSeatsException();
             oldFlight.changeFlight(passenger, newFlight);
         } finally {
             if (newFlight != null) {
