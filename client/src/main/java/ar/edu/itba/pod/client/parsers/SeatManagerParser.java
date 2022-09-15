@@ -55,7 +55,7 @@ public class SeatManagerParser {
 
         passenger = Optional.ofNullable(props.getProperty(PASSENGER));
 
-        Optional<String> col = Optional.of(props.getProperty(COLUMN));
+        Optional<String> col = Optional.ofNullable(props.getProperty(COLUMN));
         col.ifPresent(s -> column = Optional.of(s.charAt(0)));
 
         if (SeatActions.STATUS.equals(action.orElse(null)) || SeatActions.ASSIGN.equals(action.orElse(null)) ||

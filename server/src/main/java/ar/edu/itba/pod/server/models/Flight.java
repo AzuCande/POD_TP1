@@ -155,7 +155,7 @@ public class Flight {
         return traverseAndGetAvailable(() -> {
             int toReturn = 0;
             for (int i = category.ordinal(); i >= 0; i--) {
-                toReturn += availableSeats[category.ordinal()];
+                toReturn += availableSeats[i];
             }
             return toReturn;
         });
