@@ -28,7 +28,7 @@ Contiene los modelos, excepciones e interfaces que deberán ser utilizados y/o i
 Contiene la implementación de los servicios ofrecidos al Client
 
 ### Client
-Contiene parsers necesarios para envíar los pedidos al Server
+Contiene parsers necesarios para obtener el método a invocar y los clientes que se encargan de invocarlos
 
 
 ---------------------------------------------------------------------------------
