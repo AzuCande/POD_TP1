@@ -157,7 +157,7 @@ public class FlightManagerServiceImpl implements FlightManagerService {
         synchronized (store.getCancelledFlights()) {
             cancelledFlights = store.getCancelledFlights().values();
         }
-        ArrayList<CancelledTicket> unchangedTickets = new ArrayList<>();
+        List<CancelledTicket> unchangedTickets = new ArrayList<>();
         int changedCounter = 0;
 
         cancelledFlights = cancelledFlights.stream()

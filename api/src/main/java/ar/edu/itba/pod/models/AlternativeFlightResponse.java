@@ -9,9 +9,9 @@ import java.util.Map;
  **/
 
 public class AlternativeFlightResponse implements Serializable {
-    private String flightCode;
-    private String destination;
-    private Map<RowCategory, Integer> availableSeats;
+    private final String flightCode;
+    private final String destination;
+    private final Map<RowCategory, Integer> availableSeats;
 
 
     public AlternativeFlightResponse(String flightCode, String destination, Map<RowCategory, Integer> availableSeats) {

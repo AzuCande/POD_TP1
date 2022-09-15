@@ -78,6 +78,15 @@ public class SeatManagerParser {
                 LOGGER.error("Passenger not specified");
             }
         }
+
+        originalFlightCode = Optional.ofNullable(props.getProperty(ORIGINAL_FLIGHT));
+
+        if (SeatActions.CHANGE_TICKET.equals(action.orElse(null))) {
+            if (!originalFlightCode.isPresent()) {
+                LOGGER.error("Original flight not specified");
+                System.exit(1);
+            }
+        }
     }
 
     public String getServerAddress() {

@@ -25,7 +25,7 @@ public class ServerStore {
     private final Map<String, Flight> cancelledFlights = new HashMap<>();
 
     /**
-     * Mapa de Flight Code a Mapa de Passenger a Lista de Handlers
+     * Map of Flight Code to Map of Passenger to handlers List
      */
     private final Map<String, Map<String, List<NotificationHandler>>> notifications = new HashMap<>();
 
