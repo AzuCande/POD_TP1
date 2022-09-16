@@ -18,11 +18,11 @@ Más información sobre la consigna en el pdf encontrado en este mismo directori
 ---------------------------------------------------------------------------------
 
 ## Estructura del proyecto
-Como visto en clase, la estructura de este proyecto está dividida en 3 partes:
-Client - Server - Api
+Como se vió en clase, la estructura de este proyecto está dividida en 3 partes:
+Api - Server - Client
 
 ### Api
-Contiene los modelos, excepciones e interfaces que deberán ser utilizados y/o implementados por ambos Client y Server
+Contiene los modelos, excepciones e interfaces remotas que deberán ser utilizados y/o implementados por ambos Client y Server
 
 ### Server
 Contiene la implementación de los servicios ofrecidos al Client
