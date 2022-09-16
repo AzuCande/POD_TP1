@@ -4,7 +4,6 @@ import ar.edu.itba.pod.models.RowCategory;
 import ar.edu.itba.pod.models.exceptions.seatExceptions.InvalidSeatException;
 import ar.edu.itba.pod.models.exceptions.seatExceptions.NoAvailableSeatsException;
 
-
 public class Row {
     private final RowCategory rowCategory;
     private final String[] passengerNames;
@@ -14,39 +13,8 @@ public class Row {
         this.passengerNames = new String[seats];
     }
 
-    public boolean hasAvailableSeats() {
-        for (String passengerName : passengerNames) {
-            if (passengerName == null) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     public boolean isAvailable(char seat) {
         return this.passengerNames[seat - 'A'] == null;
-    }
-
-    public void findSeat(String passenger) {
-        for (int i = 0; i < passengerNames.length; i++) {
-            if (passengerNames[i] == null) {
-                passengerNames[i] = passenger;
-                return;
-            }
-        }
-
-        throw new NoAvailableSeatsException();
-    }
-
-    public boolean passengerHasSeat(String passengerName) {
-        for (String passenger : passengerNames) {
-            if (passenger != null && passenger.equals(passengerName)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     public void assignSeat(char seat, String passengerName) {

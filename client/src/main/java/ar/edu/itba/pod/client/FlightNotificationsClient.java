@@ -4,6 +4,8 @@ import ar.edu.itba.pod.callbacks.NotificationHandler;
 import ar.edu.itba.pod.client.parsers.FlightNotificationsParser;
 import ar.edu.itba.pod.client.utils.NotificationHandlerImpl;
 import ar.edu.itba.pod.interfaces.NotificationService;
+import ar.edu.itba.pod.models.exceptions.PassengerNotSeatedException;
+import ar.edu.itba.pod.models.exceptions.flightExceptions.IllegalFlightStateException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +41,7 @@ public class FlightNotificationsClient {
 
         try {
             notificationService.registerPassenger(parser.getFlight(), parser.getPassenger(), notificationHandler);
-        } catch (Exception e) { // TODO: Catch specific exceptions
+        } catch (RemoteException | IllegalFlightStateException | PassengerNotSeatedException e) {
             LOGGER.error("Error registering passenger", e);
             UnicastRemoteObject.unexportObject(notificationHandler, true);
         }

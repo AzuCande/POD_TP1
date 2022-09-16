@@ -5,11 +5,13 @@ import ar.edu.itba.pod.interfaces.SeatManagerService;
 import ar.edu.itba.pod.models.*;
 import ar.edu.itba.pod.models.AlternativeFlightResponse;
 import ar.edu.itba.pod.models.exceptions.flightExceptions.IllegalFlightStateException;
+import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundException;
 import ar.edu.itba.pod.models.exceptions.seatExceptions.NoAvailableSeatsException;
 import ar.edu.itba.pod.server.utils.ServerStore;
 import ar.edu.itba.pod.server.models.Flight;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.rmi.RemoteException;
 import java.util.*;
 import java.util.function.Consumer;
@@ -24,14 +26,6 @@ public class SeatManagerServiceImpl implements SeatManagerService {
         this.store = store;
     }
 
-    /*
-    synchronized (store.getPendingFlights()) {
-                newFlight = Optional.ofNullable(store.getPendingFlights().get(newFlightCode))
-                        .orElseThrow(IllegalFlightStateException::new);
-                newFlight.getStateLock().lock();
-                newFlight.getSeatsLock().lock();
-            }
-     */
     private Flight getPendingFlight(String flightCode) {
         Flight flight;
         synchronized (store.getPendingFlights()) {
@@ -47,7 +41,8 @@ public class SeatManagerServiceImpl implements SeatManagerService {
     private Flight getNonConfirmedFlight(String flightCode) {
         Flight flight;
         synchronized (store.getFlightCodes()) {
-            FlightState state = store.getFlightCodes().get(flightCode);
+            FlightState state = Optional.ofNullable(store.getFlightCodes().get(flightCode))
+                    .orElseThrow(FlightNotFoundException::new);
             if (state.equals(FlightState.CONFIRMED))
                 throw new IllegalFlightStateException();
 
@@ -86,15 +81,15 @@ public class SeatManagerServiceImpl implements SeatManagerService {
                 flightCode);
 
         syncNotify(flightCode, passenger, handler ->
-            store.submitNotificationTask(() -> {
-                try {
-                    handler.notifyAssignSeat(new Notification(flightCode,
-                            flight.getDestination(), flight.getRows()[row].getRowCategory(),
-                            row, seat));
-                } catch (RemoteException e) {
-                    LOGGER.info("Could not notify", e);
-                }
-            }));
+                store.submitNotificationTask(() -> {
+                    try {
+                        handler.notifyAssignSeat(new Notification(flightCode,
+                                flight.getDestination(), flight.getRows()[row].getRowCategory(),
+                                row, seat));
+                    } catch (RemoteException e) {
+                        LOGGER.error("Error notifying seat assigned", e);
+                    }
+                }));
     }
 
     @Override
@@ -126,7 +121,7 @@ public class SeatManagerServiceImpl implements SeatManagerService {
                         flight.getRows()[freeRow].getRowCategory(),
                         freeRow, freeSeat));
             } catch (RemoteException e) {
-                LOGGER.info(e.getMessage());
+                LOGGER.error("Error notifying seat changed", e);
             }
         });
     }

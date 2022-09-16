@@ -73,7 +73,9 @@ public class FlightManagerClient {
                     LOGGER.info("Reticketing successful");
                     break;
             }
-        } catch (FlightNotFoundException | IllegalPlaneException | IllegalFlightStateException e) {
+        } catch (FlightNotFoundException | IllegalFlightStateException |
+                 RemoteException | IllegalArgumentException | ModelNotFoundException |
+                 FlightAlreadyExistsException | ModelAlreadyExistsException e) {
             LOGGER.error(e.getMessage());
         }
 
@@ -104,10 +106,9 @@ public class FlightManagerClient {
                     LOGGER.info("Ignoring model");
                 }
             }
-        } catch (IOException e) {
+        } catch (IOException | CsvValidationException e) {
             LOGGER.error(e.getMessage());
-        } catch (CsvValidationException e) {
-            throw new RuntimeException(e);
+            throw new IllegalArgumentException("Error reading CSV");
         }
     }
 
@@ -139,10 +140,9 @@ public class FlightManagerClient {
                 }
                 tickets.clear();
             }
-        } catch (IOException e) {
+        } catch (IOException | CsvValidationException e) {
             LOGGER.error(e.getMessage());
-        } catch (RuntimeException | CsvValidationException e) {
-            throw new RuntimeException(e);
+            throw new IllegalArgumentException("Error reading CSV");
         }
     }
 

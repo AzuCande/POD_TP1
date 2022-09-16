@@ -9,7 +9,6 @@ import ar.edu.itba.pod.models.exceptions.IllegalRowException;
 import ar.edu.itba.pod.models.exceptions.PassengerAlreadySeatedException;
 import ar.edu.itba.pod.models.exceptions.notFoundExceptions.TicketNotFoundException;
 import ar.edu.itba.pod.models.exceptions.seatExceptions.SeatAlreadyTakenException;
-
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.Lock;

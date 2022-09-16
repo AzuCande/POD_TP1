@@ -9,7 +9,9 @@ import ar.edu.itba.pod.models.exceptions.IllegalRowException;
 import ar.edu.itba.pod.models.exceptions.PassengerAlreadySeatedException;
 import ar.edu.itba.pod.models.exceptions.PassengerNotSeatedException;
 import ar.edu.itba.pod.models.exceptions.flightExceptions.IllegalFlightStateException;
+import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundException;
 import ar.edu.itba.pod.models.exceptions.notFoundExceptions.TicketNotFoundException;
+import ar.edu.itba.pod.models.exceptions.seatExceptions.NoAvailableSeatsException;
 import ar.edu.itba.pod.models.exceptions.seatExceptions.SeatAlreadyTakenException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,16 +57,16 @@ public class SeatManagerClient {
             }
         } catch (SeatAlreadyTakenException | IllegalFlightStateException | PassengerAlreadySeatedException |
                  TicketNotFoundException | IllegalPassengerCategoryException | PassengerNotSeatedException |
-                 IllegalRowException e) {
+                 IllegalRowException | RemoteException | FlightNotFoundException | NoAvailableSeatsException e) {
             LOGGER.error(e.getMessage());
         }
     }
 
     public static void printAlternatives(List<AlternativeFlightResponse> alternatives) {
         for (AlternativeFlightResponse flight : alternatives) {
-            flight.getAvailableSeats().forEach(((category, available) -> {
-                System.out.printf("%s | %s | %d %s\n", flight.getDestination(), flight.getFlightCode(), available, (String) category.toString());
-            }));
+            flight.getAvailableSeats().forEach(((category, available) ->
+                    System.out.printf("%s | %s | %d %s\n", flight.getDestination(),
+                            flight.getFlightCode(), available, category.toString())));
         }
     }
 }
