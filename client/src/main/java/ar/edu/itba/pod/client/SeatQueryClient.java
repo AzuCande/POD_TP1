@@ -3,11 +3,11 @@ package ar.edu.itba.pod.client;
 import ar.edu.itba.pod.client.parsers.SeatQueryParser;
 import ar.edu.itba.pod.interfaces.SeatQueryService;
 import ar.edu.itba.pod.models.ResponseRow;
-import ar.edu.itba.pod.models.exceptions.IllegalRowException;
 import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundException;
 import com.opencsv.CSVWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -46,7 +46,8 @@ public class SeatQueryClient {
                 rows = service.query(parser.getFlight());
             }
             writeToCSV(rows, parser.getOutPath());
-        } catch (FlightNotFoundException | IllegalRowException e) {
+        } catch (FlightNotFoundException | RemoteException |
+                 IllegalArgumentException e) {
             LOGGER.error(e.getMessage());
         }
     }
@@ -54,7 +55,6 @@ public class SeatQueryClient {
     public static void writeToCSV(List<ResponseRow> rows, String path) {
         File file = new File(path);
         try {
-
             FileWriter outputFile = new FileWriter(file);
 
             CSVWriter writer = new CSVWriter(outputFile);
@@ -79,6 +79,7 @@ public class SeatQueryClient {
             writer.close();
         } catch (IOException e) {
             LOGGER.error(e.getMessage());
+            throw new IllegalArgumentException("Error writing CSV");
         }
     }
 }

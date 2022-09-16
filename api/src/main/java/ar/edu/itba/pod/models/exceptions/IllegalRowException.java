@@ -2,7 +2,7 @@ package ar.edu.itba.pod.models.exceptions;
 
 public class IllegalRowException extends IllegalArgumentException {
 
-    private int row;
+    private final int row;
 
     public IllegalRowException(int row) {
         super();

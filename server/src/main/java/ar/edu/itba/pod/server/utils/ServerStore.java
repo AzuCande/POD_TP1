@@ -6,7 +6,6 @@ import ar.edu.itba.pod.models.exceptions.notFoundExceptions.FlightNotFoundExcept
 import ar.edu.itba.pod.server.models.Flight;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.rmi.RemoteException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -67,17 +66,13 @@ public class ServerStore {
             try {
                 handler.notifyRegister(notification);
             } catch (RemoteException e) {
-                throw new RuntimeException(e);
+                LOGGER.error("Error notifying register", e);
             }
         }));
     }
 
     public void submitNotificationTask(Runnable task) {
         executor.submit(task);
-    }
-
-    public Map<String, Map<String, List<NotificationHandler>>> getNotifications() {
-        return notifications;
     }
 
     public Map<String, List<NotificationHandler>> getFlightNotifications(String flightCode) {
@@ -149,10 +144,6 @@ public class ServerStore {
 
         registerUser(new Notification(notification.getNewCode(),
                 notification.getDestination()), passenger, notificationHandlers);
-    }
-
-    public Lock getNotificationsLock() {
-        return notificationsLock;
     }
 
     public Map<String, Flight> getFlightsByState(FlightState state) {

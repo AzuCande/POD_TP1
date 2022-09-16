@@ -3,11 +3,9 @@ package ar.edu.itba.pod.server.utils;
 import ar.edu.itba.pod.models.RowCategory;
 import ar.edu.itba.pod.models.Ticket;
 import ar.edu.itba.pod.server.models.Flight;
-
 import java.util.Comparator;
 
 public class FlightComparator implements Comparator<Flight> {
-
     private final Ticket ticket;
 
     public FlightComparator(Ticket ticket) {
